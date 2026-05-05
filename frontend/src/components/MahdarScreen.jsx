@@ -32,7 +32,7 @@ function MahdarScreen({ date, title, purpose, location, attendees, discussion, d
     formData.append("decisions", edit_decisions);
     formData.append("next_meeting", edit_next_meeting);
 
-    const response = await fetch("http://localhost:8000/export", {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/export`, {
         method: "POST",
         body: formData
     });

@@ -25,7 +25,7 @@ function LoginScreen({ setUser }) {
   const handleGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: "http://localhost:5173" }
+      options: { redirectTo: import.meta.env.VITE_APP_URL }
     });
   };
 
