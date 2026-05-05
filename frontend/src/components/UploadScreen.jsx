@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import supabase from "../src/supabase";
+import supabase from "../supabase";
 import MahdarScreen from "./MahdarScreen";
 
 function UploadScreen() {

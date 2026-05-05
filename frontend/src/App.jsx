@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import supabase from "./supabase";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import UploadScreen from "../components/UploadScreen";
-import LoginScreen from "../components/LoginScreen";
+import UploadScreen from "./components/UploadScreen";
+import LoginScreen from "./components/LoginScreen";
 import logo from "./assets/mahdar_logo_1.png";
 
 function App() {
