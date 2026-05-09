@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 import json
 from datetime import datetime
+from hijri_converter import Gregorian
 from docxtpl import DocxTemplate
 import tempfile
 import os
@@ -90,17 +91,16 @@ async def generate(request: TranscriptRequest):
                     - title: meeting title
                     - date: meeting date if mentioned
                     - location: location or online/in-person
-                    - attendees: list of attendees mentioned
-                    - purpose: purpose/objective of the meeting
+                    - attendees: list of objects.Extract names from transcript, leave email and role as empty string if not mentioned.
                     - discussion: key discussion points
                     - decisions: decisions made
-                    - action_items: list of action items with owner and deadline if mentioned
+                    - action_items: list of objects with keys "task", "owner", "deadline" (leave empty string if unknown)
                     - next_meeting: next meeting date if mentioned
                     
                     For context, todays date is {day_name} {today}
                     If the date was not provided use todays date: {today}. If any future dates are mentioned, calculate them based on todays date: {day_name} {today}
                     If location is not specified, try to infer if it was online, or in-person and return either.
-                    If you can't infer any of the keys from the text, leave the value as an empty string.
+                    If you can't infer any values from the text, leave the value as an empty string or empty objects.
 
                     Transcript:
                     {request.transcript}"""
@@ -111,6 +111,26 @@ async def generate(request: TranscriptRequest):
     clean = content.replace("```json", "").replace("```", "").strip()
     mom_data = json.loads(clean)
 
+    # Add Hijri Dates
+    try:
+        if mom_data.get("date"):
+            gregorian_date = mom_data["date"].split("-")
+            hijri = Gregorian(int(gregorian_date[0]), int(gregorian_date[1]), int(gregorian_date[2])).to_hijri()
+            mom_data["hijri_date"] = f"{hijri.day}/{hijri.month}/{hijri.year} هـ"
+        else:
+            mom_data["hijri_date"] = ""
+    except:
+        mom_data["hijri_date"] = ""
+
+    try:
+        if mom_data.get("next_meeting"):
+            next_date = mom_data["next_meeting"].split("-")
+            hijri_next = Gregorian(int(next_date[0]), int(next_date[1]), int(next_date[2])).to_hijri()
+            mom_data["hijri_next_meeting"] = f"{hijri_next.day}/{hijri_next.month}/{hijri_next.year} هـ"
+        else:
+            mom_data["hijri_next_meeting"] = ""
+    except:
+        mom_data["hijri_next_meeting"] = ""
     # Save to supabase
     supabase.table("mahdars").insert({
         "user_id": user.user.id,
@@ -135,7 +155,7 @@ async def export(
 ):
     template_bytes = await template.read()
     
-    tmp_path = "arabic_test_template_1.docx"
+    tmp_path = "temp_template.docx"
     output_path = "temp_output.docx"
     
     with open(tmp_path, "wb") as f:
@@ -147,11 +167,11 @@ async def export(
         "date": date,
         "title": title,
         "location": location,
-        "attendees": attendees,
+        "attendees": json.loads(attendees),       # parse JSON string to list
         "purpose": purpose,
         "discussion": discussion,
         "decisions": decisions,
-        "action_items": action_items,
+        "action_items": json.loads(action_items), # parse JSON string to list
         "next_meeting": next_meeting
     }
     
