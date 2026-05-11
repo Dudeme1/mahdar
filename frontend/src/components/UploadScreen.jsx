@@ -300,6 +300,8 @@ function UploadScreen() {
   const [token, setToken] = useState(null);
   const [file, setFile] = useState(null);
   const [template, setTemplate] = useState(null);
+  const [savedTemplates, setSavedTemplates] = useState([]);
+  const [selectedTemplateUrl, setSelectedTemplateUrl] = useState(null);
   const [text, setText] = useState("");
   const [textInput, setTextInput] = useState("");
   const [recording, setRecording] = useState(false);
@@ -318,6 +320,29 @@ function UploadScreen() {
       setToken(session?.access_token);
     });
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchTemplates = async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/get-templates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })
+      });
+      const data = await response.json();
+      setSavedTemplates(data.templates || []);
+    };
+    fetchTemplates();
+  }, [token]);
+
+  const getTemplateFile = async () => {
+    if (!selectedTemplateUrl) return null;
+    const response = await fetch(selectedTemplateUrl);
+    const blob = await response.blob();
+    return new File([blob], "template.docx", { 
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+    });
+  };
 
   const handleSignout = async () => { await supabase.auth.signOut(); };
 
@@ -496,6 +521,42 @@ function UploadScreen() {
                 {template && <div style={{ ...S.fileZoneSelected, marginLeft: "auto" }}>✓ {template.name}</div>}
               </div>
             </div>
+
+            {/* Saved templates dropdown — now inside the card */}
+            {savedTemplates.length > 0 && (
+              <>
+                <div style={{ ...S.divider, margin: "12px 0" }}>
+                  <div style={S.dividerLine} />
+                  <div style={S.dividerText}>or choose saved</div>
+                  <div style={S.dividerLine} />
+                </div>
+                <select
+                  className="up-select"
+                  style={{ ...S.select, width: "100%", marginLeft: 0 }}
+                  value={selectedTemplateUrl}
+                  onChange={async (e) => {
+                    const url = e.target.value;
+                    setSelectedTemplateUrl(url);
+                    if (!url) {
+                      setTemplate(null);
+                      return;
+                    }
+                    // Immediately fetch and set the template file
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const fileName = url.split("/").pop()?.split("?")[0] || "template.docx";
+                    setTemplate(new File([blob], fileName, {
+                      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    }));
+                  }}
+                >
+                  <option value="">Select a saved template…</option>
+                  {savedTemplates.map((t) => (
+                    <option key={t.id} value={t.download_url}>{t.name}</option>
+                  ))}
+                </select>
+              </>
+            )}
           </div>
 
           {/* Generated MoM */}
