@@ -11,6 +11,9 @@ import openai
 import anthropic
 from pydantic import BaseModel
 
+# Fuzzy matching
+from rapidfuzz import fuzz, process
+
 import json
 from datetime import datetime
 from hijri_converter import Gregorian
@@ -32,11 +35,61 @@ supabase = create_client(
     os.getenv("SUPABASE_KEY")
 )
 
+def match_attendee(name: str, saved_attendees: list, threshold: int = 75):
+    if not saved_attendees:
+        return None
+    
+    # Build list of (search_string, attendee) pairs — duplicates preserved!
+    candidates = []
+    for attendee in saved_attendees:
+        candidates.append((attendee["name"], attendee))
+        for alias in (attendee.get("aliases") or []):
+            candidates.append((alias, attendee))
+    
+    # Extract just the strings for matching
+    search_strings = [c[0] for c in candidates]
+    
+    # Find best match
+    result = process.extractOne(
+        name,
+        search_strings,
+        scorer=fuzz.WRatio,
+        score_cutoff=threshold
+    )
+    
+    if result:
+        matched_string = result[0]
+        matched_index = result[2]  # index of match in search_strings
+        return candidates[matched_index][1]  # return the attendee object
+    
+    return None
+
 class TranscriptRequest(BaseModel):
     transcript: str
     language: str = "english"
     token: str = ""
 
+class AttendeeRequest(BaseModel):
+    token: str
+    name: str
+    email: str = ""
+    role: str = ""
+    aliases: list = []
+
+class DeleteAttendeeRequest(BaseModel):
+    token: str
+    attendee_id: int
+
+class UpdateAttendeeRequest(BaseModel):
+    token: str
+    attendee_id: int
+    name: str
+    email: str = ""
+    role: str = ""
+    aliases: list = []
+
+class TokenRequest(BaseModel):
+    token: str
 
 app = FastAPI()
 
@@ -75,10 +128,11 @@ async def generate(request: TranscriptRequest):
     if not user:
         return {"error": "Not logged in!"}
     email = user.user.email
+    user_id = user.user.id
     today = datetime.today()
     day_name = today.strftime("%A")
     message = claude.messages.create(
-        model="claude-opus-4-5",
+        model="claude-opus-4-6",
         max_tokens=2000,
         messages=[
             {
@@ -91,10 +145,11 @@ async def generate(request: TranscriptRequest):
                     - title: meeting title
                     - date: meeting date if mentioned
                     - location: location or online/in-person
+                    - purpose: purpose of the meeting
                     - attendees: list of objects.Extract names from transcript, leave email and role as empty string if not mentioned.
                     - discussion: key discussion points
                     - decisions: decisions made
-                    - action_items: list of objects with keys "task", "owner", "deadline" (leave empty string if unknown)
+                    - action_items: list of objects with the following keys: "task", "owner", "deadline" (leave empty string if unknown)
                     - next_meeting: next meeting date if mentioned
                     
                     For context, todays date is {day_name} {today}
@@ -110,7 +165,7 @@ async def generate(request: TranscriptRequest):
     content = message.content[0].text
     clean = content.replace("```json", "").replace("```", "").strip()
     mom_data = json.loads(clean)
-
+    print(mom_data)
     # Add Hijri Dates
     try:
         if mom_data.get("date"):
@@ -131,6 +186,25 @@ async def generate(request: TranscriptRequest):
             mom_data["hijri_next_meeting"] = ""
     except:
         mom_data["hijri_next_meeting"] = ""
+    
+    # Fetch saved attendees
+    saved = supabase.table("attendees").select("*").eq("user_id", user_id).execute()
+    saved_attendees = saved.data or []
+
+    enriched_attendees = []
+    for attendee in mom_data.get("attendees", []):
+        match = match_attendee(attendee["name"], saved_attendees)
+        if match:
+            enriched_attendees.append({
+                "name": match["name"],
+                "email": match.get("email", ""),
+                "role": match.get("role", "")
+            })
+        else:
+            enriched_attendees.append(attendee)
+    
+    mom_data["attendees"] = enriched_attendees
+
     # Save to supabase
     supabase.table("mahdars").insert({
         "user_id": user.user.id,
@@ -183,3 +257,59 @@ async def export(
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         filename="mahdar_report.docx"
     )
+
+@app.post("/save-attendee")
+async def save_attendee(request: AttendeeRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    
+    user_id = user.user.id
+    
+    # Check if attendee already exists
+    existing = supabase.table("attendees").select("*").eq("user_id", user_id).eq("name", request.name).execute()
+    
+    if existing.data:
+        return {"message": "Attendee already exists!"}
+    
+    supabase.table("attendees").insert({
+        "user_id": user_id,
+        "name": request.name,
+        "email": request.email,
+        "role": request.role,
+        "aliases": request.aliases
+    }).execute()
+    
+    return {"message": "Attendee saved!"}
+
+@app.post("/get-attendees")
+async def get_attendees(request: TokenRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    
+    result = supabase.table("attendees").select("*").eq("user_id", user.user.id).execute()
+    return {"attendees": result.data} 
+
+@app.post("/delete-attendee")
+async def delete_attendee(request: DeleteAttendeeRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    
+    supabase.table("attendees").delete().eq("id", request.attendee_id).eq("user_id", user.user.id).execute()
+    return {"message": "Attendee deleted!"}
+
+@app.post("/update-attendee")
+async def update_attendee(request: UpdateAttendeeRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    
+    supabase.table("attendees").update({
+        "name": request.name,
+        "email": request.email,
+        "role": request.role,
+        "aliases": request.aliases
+    }).eq("id", request.attendee_id).eq("user_id", user.user.id).execute()
+    return {"message": "Attendee updated!"}

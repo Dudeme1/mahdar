@@ -3,6 +3,8 @@ import supabase from "./supabase";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import UploadScreen from "./components/UploadScreen";
 import LoginScreen from "./components/LoginScreen";
+import AttendeesScreen from "./components/AttendeesScreen";
+import Layout from "./components/Layout";
 import logo from "./assets/mahdar_logo_1.png";
 
 function App() {
@@ -47,12 +49,13 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={!user ? <LoginScreen setUser={setUser} /> : <Navigate to="/dashboard" />} />
-        <Route path="/dashboard" element={user ? <UploadScreen user={user} /> : <Navigate to="/login" />} />
+        <Route path="/login" element={!user ? <Layout user={user}><LoginScreen setUser={setUser} /></Layout> : <Navigate to="/dashboard" />} />
+        <Route path="/dashboard" element={user ? <Layout user={user}><UploadScreen user={user} /></Layout> : <Navigate to="/login" />} />
+        <Route path="/attendees" element={user ? <Layout user={user}><AttendeesScreen user={user} /></Layout> : <Navigate to="/login" />} />
         <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
       </Routes>
     </BrowserRouter>
   )
-}
+}           
 
 export default App
