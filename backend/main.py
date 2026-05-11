@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 # Database
 from supabase import create_client
+from urllib.parse import urlparse
 
 # AI 
 import openai
@@ -313,3 +314,85 @@ async def update_attendee(request: UpdateAttendeeRequest):
         "aliases": request.aliases
     }).eq("id", request.attendee_id).eq("user_id", user.user.id).execute()
     return {"message": "Attendee updated!"}
+
+# templates
+@app.post("/upload-template")
+async def upload_template(
+    file: UploadFile = File(...),
+    name: str = Form(""),
+    token: str = Form("")
+):
+    user = supabase.auth.get_user(token)
+    if not user:
+        return {"error": "Not logged in!"}
+    
+    user_id = user.user.id
+    file_bytes = await file.read()
+    file_path = f"{user_id}/{file.filename}"
+    
+    # Upload to Supabase Storage
+    supabase.storage.from_("templates").upload(
+        file_path,
+        file_bytes,
+        {"content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+    )
+    
+    # Save the STORAGE PATH (not the public URL) — makes delete reliable
+    supabase.table("templates").insert({
+        "user_id": user_id,
+        "name": name or file.filename,
+        "file_path": file_path          # <-- store path, not URL
+    }).execute()
+    
+    return {"message": "Template uploaded!", "file_path": file_path}
+
+
+@app.post("/get-templates")
+async def get_templates(request: TokenRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    
+    user_id = user.user.id
+    result = supabase.table("templates").select("*").eq("user_id", user_id).execute()
+    
+    templates = []
+    for t in result.data:
+        # Generate a fresh signed URL for each template (valid 1 hour)
+        signed = supabase.storage.from_("templates").create_signed_url(
+            t["file_path"], 3600
+        )
+        templates.append({
+            **t,
+            "download_url": signed.get("signedURL") or signed.get("signed_url")
+        })
+    
+    return {"templates": templates}
+
+
+class DeleteTemplateRequest(BaseModel):
+    token: str
+    template_id: int
+    file_path: str          # <-- accept file_path directly, not file_url
+
+
+@app.post("/delete-template")
+async def delete_template(request: DeleteTemplateRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    
+    user_id = user.user.id
+    
+    # Security check: make sure the path belongs to this user
+    if not request.file_path.startswith(f"{user_id}/"):
+        return {"error": "Unauthorized"}
+    
+    # Delete from storage using the exact path
+    storage_result = supabase.storage.from_("templates").remove([request.file_path])
+    print("Storage delete result:", storage_result)   # log this to verify
+    
+    # Delete from table
+    supabase.table("templates").delete().eq("id", request.template_id).eq("user_id", user_id).execute()
+    
+    return {"message": "Template deleted!"}

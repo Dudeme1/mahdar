@@ -153,6 +153,7 @@ const S = {
 const NAV_ITEMS = [
   { label: "New Mahdar", icon: "🎙️", path: "/dashboard" },
   { label: "Attendees", icon: "👥", path: "/attendees" },
+  { label: "Templates", icon: "📄", path: "/templates" },
 ];
 
 function Layout({ children, user }) {

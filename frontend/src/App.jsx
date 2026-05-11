@@ -4,8 +4,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import UploadScreen from "./components/UploadScreen";
 import LoginScreen from "./components/LoginScreen";
 import AttendeesScreen from "./components/AttendeesScreen";
+import TemplatesScreen from "./components/TemplatesScreen";
 import Layout from "./components/Layout";
-import logo from "./assets/mahdar_logo_1.png";
 
 function App() {
   const [ user, setUser ] = useState(null);
@@ -52,6 +52,7 @@ function App() {
         <Route path="/login" element={!user ? <Layout user={user}><LoginScreen setUser={setUser} /></Layout> : <Navigate to="/dashboard" />} />
         <Route path="/dashboard" element={user ? <Layout user={user}><UploadScreen user={user} /></Layout> : <Navigate to="/login" />} />
         <Route path="/attendees" element={user ? <Layout user={user}><AttendeesScreen user={user} /></Layout> : <Navigate to="/login" />} />
+        <Route path="/templates" element={user ? <Layout user={user}><TemplatesScreen user={user} /></Layout> : <Navigate to="/login" />} />
         <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
       </Routes>
     </BrowserRouter>
