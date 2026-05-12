@@ -4,107 +4,294 @@ import MahdarScreen from "./MahdarScreen";
 import logoUrl from "/icon-512.png";
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap');
 
-  @keyframes up-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.6; transform: scale(1.08); }
-  }
-  @keyframes up-spin {
-    to { transform: rotate(360deg); }
-  }
+  *, *::before, *::after { box-sizing: border-box; }
 
-  .up-spinner {
-    width: 13px; height: 13px;
-    border: 2px solid rgba(255,255,255,0.3);
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .ms-spinner {
+    width: 14px; height: 14px;
+    border: 1.5px solid rgba(255,255,255,0.25);
     border-top-color: #fff;
     border-radius: 50%;
-    animation: up-spin 0.7s linear infinite;
+    animation: spin 0.7s linear infinite;
     display: inline-block;
   }
-  .up-rec-dot {
-    width: 8px; height: 8px;
-    background: #ef4444;
+  .ms-rec {
+    width: 7px; height: 7px;
+    background: #c0392b;
     border-radius: 50%;
-    animation: up-pulse 1.2s ease-in-out infinite;
+    animation: pulse 1s ease-in-out infinite;
     display: inline-block;
-    margin-right: 6px;
-    vertical-align: middle;
   }
 
-  /* Tab buttons */
-  .up-tab-btn {
-    flex: 1;
-    padding: 8px 0;
-    font-size: 13px;
+  .ms-root {
+    min-height: 100vh;
+    background: #f7f6f3;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #3a3530;
+    padding: 0 0 80px;
+  }
+
+  .ms-header {
+    border-bottom: 1px solid #e4e0d8;
+    background: #f7f6f3;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ms-logo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ms-logo-img {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+  }
+  .ms-logo-text {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
     font-weight: 500;
-    font-family: 'DM Sans', system-ui, sans-serif;
-    border: none;
-    background: transparent;
+    color: #1c1c18;
+    letter-spacing: -0.2px;
+  }
+  .ms-logo-text span { color: #b07d3a; }
+
+  .ms-signout {
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #9a9387;
+    background: none;
+    border: 1px solid #ddd9d0;
+    border-radius: 20px;
+    padding: 5px 14px;
     cursor: pointer;
-    color: #9ca3af;
-    border-radius: 8px;
-    transition: all 0.15s;
+    letter-spacing: 0.01em;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .ms-signout:hover { color: #3a3530; border-color: #b8b2a6; }
+
+  .ms-body { max-width: 680px; margin: 0 auto; padding: 40px 24px 0; }
+
+  .ms-title {
+    font-family: 'Fraunces', serif;
+    font-size: 34px;
+    font-weight: 500;
+    color: #1c1c18;
+    letter-spacing: -0.3px;
+    margin: 0 0 4px;
+  }
+  .ms-title span { color: #b07d3a; }
+  .ms-sub {
+    font-size: 13.5px;
+    color: #9a9387;
+    font-weight: 400;
+    margin: 0 0 32px;
     letter-spacing: 0.01em;
   }
-  .up-tab-btn.active {
+
+  /* Main panel */
+  .ms-panel {
     background: #fff;
-    color: #1a2e22;
-    font-weight: 600;
-    box-shadow: 0 1px 4px rgba(26,46,34,0.1);
-  }
-  .up-tab-btn:hover:not(.active) { color: #1a2e22; }
-
-  /* Inputs */
-  .up-textarea { transition: border-color 0.15s; }
-  .up-textarea:focus { border-color: rgba(195,152,83,0.6) !important; outline: none; box-shadow: 0 0 0 3px rgba(195,152,83,0.08); }
-  .up-select:focus { border-color: rgba(195,152,83,0.6) !important; outline: none; box-shadow: 0 0 0 3px rgba(195,152,83,0.08); }
-
-  /* File zone */
-  .up-file-zone {
-    transition: border-color 0.15s, background 0.15s;
-    cursor: pointer;
-  }
-  .up-file-zone:hover {
-    border-color: rgba(195,152,83,0.5) !important;
-    background: rgba(195,152,83,0.03) !important;
-  }
-
-  /* Buttons */
-  .up-btn-primary:hover:not(:disabled) { opacity: 0.88; }
-  .up-btn-secondary:hover { background: #f4f5f2 !important; }
-  .up-btn-record:hover { opacity: 0.88; }
-  .up-btn-record-stop:hover { background: #fee2e2 !important; }
-
-  /* Select */
-  .up-select {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a7585' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    padding-right: 30px !important;
-  }
-
-  /* Captured badge */
-  .up-captured-badge {
-    font-size: 12px;
-    color: #a07830;
-    background: rgba(195,152,83,0.1);
-    padding: 3px 12px;
+    border: 1px solid #e4e0d8;
     border-radius: 20px;
-    border: 1px solid rgba(195,152,83,0.3);
-    font-weight: 500;
+    overflow: hidden;
+    margin-bottom: 1px;
   }
 
-  /* Section label */
-  .up-section-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.09em;
+  /* Tab bar — text-only, no box */
+  .ms-tabs {
+    display: flex;
+    border-bottom: 1px solid #e4e0d8;
+    padding: 0 20px;
+    gap: 0;
+  }
+  .ms-tab {
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #b0adb5;
-    margin-bottom: 12px;
-    font-family: 'DM Sans', system-ui, sans-serif;
+    color: #b0a89e;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 14px 14px 12px;
+    cursor: pointer;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .ms-tab.active {
+    color: #1c1c18;
+    border-bottom-color: #b07d3a;
+  }
+  .ms-tab:hover:not(.active) { color: #5a524a; }
+
+  /* Tab content */
+  .ms-tab-body { padding: 20px; }
+
+  textarea.ms-input {
+    width: 100%;
+    min-height: 130px;
+    padding: 12px 14px;
+    border: 1px solid #e4e0d8;
+    border-radius: 12px;
+    background: #fbfaf8;
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-size: 13.5px;
+    font-weight: 400;
+    color: #1c1c18;
+    line-height: 1.7;
+    resize: vertical;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  textarea.ms-input:focus { border-color: #b07d3a; background: #fff; }
+  textarea.ms-input::placeholder { color: #c4bdb4; }
+
+  /* Record tab */
+  .ms-record-area {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 0;
+  }
+  .ms-record-status {
+    font-size: 13px;
+    color: #9a9387;
+    font-weight: 300;
+    flex: 1;
+  }
+  .ms-record-btn {
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 8px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .ms-record-btn:hover { opacity: 0.8; }
+  .ms-record-start { background: #1c1c18; color: #fff; border-color: #1c1c18; }
+  .ms-record-stop  { background: #fdf1f1; color: #c0392b; border-color: #f3c9c9; }
+
+  /* Upload tab */
+  .ms-upload-zone {
+    border: 1px dashed #d5cfc5;
+    border-radius: 12px;
+    background: #fbfaf8;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .ms-upload-zone:hover { border-color: #b07d3a; background: #fdf8f2; }
+  .ms-upload-title { font-size: 13px; font-weight: 500; color: #3a3530; margin-bottom: 3px; }
+  .ms-upload-hint  { font-size: 11.5px; color: #b0a89e; letter-spacing: 0.02em; }
+
+  /* Bottom row of panel */
+  .ms-panel-foot {
+    border-top: 1px solid #e4e0d8;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .ms-generate-btn {
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: #1c1c18;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.15s;
+  }
+  .ms-generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ms-generate-btn:not(:disabled):hover { opacity: 0.82; }
+
+  select.ms-select {
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #3a3530;
+    background: #fff;
+    border: 1px solid #e4e0d8;
+    border-radius: 20px;
+    padding: 8px 28px 8px 14px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%239a9387' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select.ms-select:focus { border-color: #b07d3a; }
+
+  .ms-template-row {
+    background: #fff;
+    border: 1px solid #e4e0d8;
+    border-radius: 20px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .ms-template-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #b0a89e;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .ms-template-upload {
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #5a524a;
+    background: #fbfaf8;
+    border: 1px solid #e4e0d8;
+    border-radius: 20px;
+    padding: 6px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.15s;
+  }
+  .ms-template-upload:hover { border-color: #b07d3a; }
+  .ms-template-divider { font-size: 11px; color: #c4bdb4; }
+
+  .ms-badge {
+    font-size: 11px;
+    color: #8a6525;
+    background: #fdf3e0;
+    border: 1px solid #e8d5a8;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
   }
 `;
 
@@ -195,89 +382,37 @@ function UploadScreen() {
     setLoading(false);
   };
 
-  const tabConfig = [
-    { id: TABS.type,   label: "✏️  Type notes" },
-    { id: TABS.record, label: "🎙️  Record audio" },
-    { id: TABS.upload, label: "📎  Upload audio" },
-  ];
-
-  // ── Shared style tokens ──
-  const card = {
-    background: "#fff",
-    border: "1px solid #e8e7ea",
-    borderRadius: "16px",
-    padding: "20px",
-    boxShadow: "rgba(26,46,34,0.06) 0 8px 24px -4px, rgba(0,0,0,0.03) 0 2px 6px -1px",
-    marginBottom: "14px",
-  };
-
-  const fileZoneBase = {
-    border: "1.5px dashed #e2e0e5",
-    borderRadius: "12px",
-    padding: "20px",
-    background: "#fafaf9",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "5px",
-    textAlign: "center",
-  };
-
-  const divider = {
-    display: "flex", alignItems: "center", gap: "10px", margin: "16px 0",
-  };
-
   return (
     <>
       <style>{css}</style>
-      <div style={{
-        minHeight: "100vh",
-        background: "#f4f5f2",
-        padding: "28px 20px 48px",
-        fontFamily: "'DM Sans', system-ui, 'Segoe UI', sans-serif",
-        color: "#7a7585",
-        boxSizing: "border-box",
-      }}>
-        <div style={{ maxWidth: "760px", margin: "0 auto" }}>
+      <div className="ms-root">
 
-          {/* ── Hero ── */}
-          <div style={{ textAlign: "center", marginBottom: "28px" }}>
-            <img
-              src={logoUrl}
-              alt="Mahdari"
-              style={{ width: "52px", height: "52px", borderRadius: "14px", marginBottom: "14px", display: "block", margin: "0 auto 14px" }}
-            />
-            <h1 style={{
-              fontFamily: "'DM Serif Display', serif",
-              fontSize: "28px",
-              fontWeight: "400",
-              color: "#1a2e22",
-              letterSpacing: "-0.5px",
-              margin: "0 0 8px",
-            }}>
-              New Mah<span style={{ color: "#c39853" }}>dar</span>
-            </h1>
-            <p style={{ fontSize: "14px", color: "#a09aaa", lineHeight: "1.6", margin: 0 }}>
-              Upload, record, or type your meeting notes and instantly generate a clean MoM report.
-            </p>
+        {/* Header */}
+        <header className="ms-header">
+          <div className="ms-logo-row">
+            <img src={logoUrl} alt="Mahdari" className="ms-logo-img" />
+            <span className="ms-logo-text">Mah<span>dari</span></span>
           </div>
+          <button className="ms-signout" onClick={handleSignout}>Sign out</button>
+        </header>
 
-          {/* ── Main input card ── */}
-          <div style={card}>
+        <div className="ms-body">
+          <h1 className="ms-title">New Mah<span>dar</span></h1>
+          <p className="ms-sub">Generate a clean minutes-of-meeting from audio or notes.</p>
 
-            {/* Tab switcher */}
-            <div style={{
-              display: "flex",
-              background: "#f2f1f4",
-              borderRadius: "10px",
-              padding: "3px",
-              marginBottom: "18px",
-              gap: "2px",
-            }}>
-              {tabConfig.map(t => (
+          {/* Main input panel */}
+          <div className="ms-panel">
+
+            {/* Tabs */}
+            <div className="ms-tabs">
+              {[
+                { id: TABS.type,   label: "Type notes" },
+                { id: TABS.record, label: "Record audio" },
+                { id: TABS.upload, label: "Upload audio" },
+              ].map(t => (
                 <button
                   key={t.id}
-                  className={`up-tab-btn${activeTab === t.id ? " active" : ""}`}
+                  className={`ms-tab${activeTab === t.id ? " active" : ""}`}
                   onClick={() => setActiveTab(t.id)}
                 >
                   {t.label}
@@ -285,152 +420,72 @@ function UploadScreen() {
               ))}
             </div>
 
-            {/* ── Type tab ── */}
-            {activeTab === TABS.type && (
-              <textarea
-                className="up-textarea"
-                value={textInput}
-                onChange={e => setTextInput(e.target.value)}
-                placeholder="Paste or type your meeting notes here…"
-                style={{
-                  width: "100%",
-                  minHeight: "140px",
-                  padding: "14px",
-                  borderRadius: "11px",
-                  border: "1px solid #e2e0e5",
-                  background: "#fafaf9",
-                  fontSize: "14px",
-                  resize: "vertical",
-                  boxSizing: "border-box",
-                  lineHeight: "1.65",
-                  color: "#1a2e22",
-                  fontFamily: "'DM Sans', system-ui, sans-serif",
-                }}
-              />
-            )}
+            {/* Tab bodies */}
+            <div className="ms-tab-body">
 
-            {/* ── Record tab ── */}
-            {activeTab === TABS.record && (
-              <div style={{
-                display: "flex", flexDirection: "column", alignItems: "center",
-                padding: "32px 20px", gap: "14px",
-              }}>
-                <p style={{ fontSize: "13px", color: "#a09aaa", margin: 0, textAlign: "center" }}>
-                  {recording
-                    ? "Recording in progress — click stop when done"
-                    : file?.name === "recording.webm"
-                      ? "Recording saved — ready to generate"
-                      : "Tap to start recording your meeting audio"}
-                </p>
+              {activeTab === TABS.type && (
+                <textarea
+                  className="ms-input"
+                  value={textInput}
+                  onChange={e => setTextInput(e.target.value)}
+                  placeholder="Paste or type your meeting notes here…"
+                />
+              )}
 
-                {recording ? (
-                  <button
-                    className="up-btn-record-stop"
-                    onClick={stopRecording}
-                    style={{
-                      background: "#fef2f2", color: "#dc2626",
-                      border: "1px solid #fecaca", borderRadius: "50px",
-                      padding: "12px 26px", fontSize: "13px", fontWeight: "600",
-                      cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif",
-                      display: "flex", alignItems: "center", gap: "8px",
-                    }}
-                  >
-                    <span className="up-rec-dot" />
-                    Stop recording
-                  </button>
-                ) : (
-                  <button
-                    className="up-btn-record"
-                    onClick={startRecording}
-                    style={{
-                      background: "#1a2e22", color: "#fff",
-                      border: "none", borderRadius: "50px",
-                      padding: "12px 26px", fontSize: "13px", fontWeight: "600",
-                      cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif",
-                      display: "flex", alignItems: "center", gap: "8px",
-                    }}
-                  >
-                    🎙️ Start recording
-                  </button>
-                )}
-
-                {file?.name === "recording.webm" && !recording && (
-                  <span className="up-captured-badge">✓ Audio captured</span>
-                )}
-              </div>
-            )}
-
-            {/* ── Upload tab ── */}
-            {activeTab === TABS.upload && (
-              <>
-                <input ref={audioFileRef} type="file" accept="audio/*" style={{ display: "none" }}
-                  onChange={e => setFile(e.target.files[0])} />
-                <div className="up-file-zone" style={fileZoneBase} onClick={() => audioFileRef.current?.click()}>
-                  <span style={{ fontSize: "22px" }}>🎵</span>
-                  <div style={{ fontSize: "13px", fontWeight: "600", color: "#1a2e22", marginTop: "2px" }}>
-                    Click to upload audio file
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#b0adb5" }}>MP3, WAV, WEBM, M4A supported</div>
-                  {file && (
-                    <span className="up-captured-badge" style={{ marginTop: "4px" }}>✓ {file.name}</span>
+              {activeTab === TABS.record && (
+                <div className="ms-record-area">
+                  <span className="ms-record-status">
+                    {recording
+                      ? "Recording in progress…"
+                      : file?.name === "recording.webm"
+                        ? <span className="ms-badge">✓ Audio captured</span>
+                        : "Tap the button to start recording."}
+                  </span>
+                  {recording ? (
+                    <button className="ms-record-btn ms-record-stop" onClick={stopRecording}>
+                      <span className="ms-rec" /> Stop
+                    </button>
+                  ) : (
+                    <button className="ms-record-btn ms-record-start" onClick={startRecording}>
+                      ● Start recording
+                    </button>
                   )}
                 </div>
-              </>
-            )}
+              )}
 
-            {/* Divider */}
-            <div style={divider}>
-              <div style={{ flex: 1, height: "1px", background: "#eeecf0" }} />
-              <span style={{ fontSize: "10.5px", color: "#c4bfca", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                Options
-              </span>
-              <div style={{ flex: 1, height: "1px", background: "#eeecf0" }} />
+              {activeTab === TABS.upload && (
+                <>
+                  <input ref={audioFileRef} type="file" accept="audio/*" style={{ display: "none" }}
+                    onChange={e => setFile(e.target.files[0])} />
+                  <div className="ms-upload-zone" onClick={() => audioFileRef.current?.click()}>
+                    <div className="ms-upload-title">Click to upload audio</div>
+                    <div className="ms-upload-hint">MP3 · WAV · WEBM · M4A</div>
+                    {file && (
+                      <span className="ms-badge" style={{ display: "inline-block", marginTop: "10px" }}>
+                        ✓ {file.name}
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Controls */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+            {/* Footer: generate + options */}
+            <div className="ms-panel-foot">
               <button
-                className="up-btn-primary"
+                className="ms-generate-btn"
                 onClick={processAudio}
                 disabled={loading}
-                style={{
-                  background: "#1a2e22",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "10px",
-                  padding: "10px 18px",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  fontFamily: "'DM Sans', system-ui, sans-serif",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "7px",
-                  opacity: loading ? 0.72 : 1,
-                  transition: "opacity 0.15s",
-                }}
               >
                 {loading
-                  ? <><span className="up-spinner" /> Generating…</>
-                  : <>✨ Generate Mahdar</>}
+                  ? <><span className="ms-spinner" /> Generating…</>
+                  : "Generate Mahdar"}
               </button>
 
               <select
-                className="up-select"
+                className="ms-select"
                 value={language}
                 onChange={e => setLanguage(e.target.value)}
-                style={{
-                  padding: "9px 30px 9px 12px",
-                  borderRadius: "10px",
-                  border: "1px solid #e2e0e5",
-                  background: "#fff",
-                  fontSize: "13px",
-                  color: "#1a2e22",
-                  fontFamily: "'DM Sans', system-ui, sans-serif",
-                  marginLeft: "auto",
-                  cursor: "pointer",
-                  transition: "border-color 0.15s",
-                }}
               >
                 <option value="english">English</option>
                 <option value="arabic">Arabic</option>
@@ -438,40 +493,21 @@ function UploadScreen() {
             </div>
           </div>
 
-          {/* ── Template card ── */}
-          <div style={{ ...card, padding: "18px 20px" }}>
-            <div className="up-section-label">Word template (optional)</div>
+          {/* Template row — compact, same visual weight as the panel */}
+          <div className="ms-template-row" style={{ marginTop: "8px" }}>
+            <span className="ms-template-label">Template</span>
+
             <input ref={templateFileRef} type="file" accept=".docx" style={{ display: "none" }}
               onChange={e => setTemplate(e.target.files[0])} />
-
-            <div
-              className="up-file-zone"
-              style={{ ...fileZoneBase, flexDirection: "row", padding: "14px 16px", gap: "12px", textAlign: "left" }}
-              onClick={() => templateFileRef.current?.click()}
-            >
-              <span style={{ fontSize: "20px", flexShrink: 0 }}>📄</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "13px", fontWeight: "600", color: "#1a2e22" }}>Upload .docx template</div>
-                <div style={{ fontSize: "12px", color: "#b0adb5", marginTop: "2px" }}>
-                  Your MoM will follow this document's structure
-                </div>
-              </div>
-              {template && (
-                <span className="up-captured-badge" style={{ flexShrink: 0 }}>✓ {template.name}</span>
-              )}
-            </div>
+            <button className="ms-template-upload" onClick={() => templateFileRef.current?.click()}>
+              {template ? <span className="ms-badge">✓ {template.name}</span> : "Upload .docx"}
+            </button>
 
             {savedTemplates.length > 0 && (
               <>
-                <div style={{ ...divider, margin: "14px 0" }}>
-                  <div style={{ flex: 1, height: "1px", background: "#eeecf0" }} />
-                  <span style={{ fontSize: "10.5px", color: "#c4bfca", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                    or choose saved
-                  </span>
-                  <div style={{ flex: 1, height: "1px", background: "#eeecf0" }} />
-                </div>
+                <span className="ms-template-divider">or</span>
                 <select
-                  className="up-select"
+                  className="ms-select"
                   value={selectedTemplateUrl || ""}
                   onChange={async (e) => {
                     const url = e.target.value;
@@ -484,47 +520,43 @@ function UploadScreen() {
                       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     }));
                   }}
-                  style={{
-                    width: "100%",
-                    padding: "9px 30px 9px 12px",
-                    borderRadius: "10px",
-                    border: "1px solid #e2e0e5",
-                    background: "#fff",
-                    fontSize: "13px",
-                    color: "#1a2e22",
-                    fontFamily: "'DM Sans', system-ui, sans-serif",
-                    cursor: "pointer",
-                    transition: "border-color 0.15s",
-                  }}
+                  style={{ flex: 1, minWidth: 0 }}
                 >
-                  <option value="">Select a saved template…</option>
+                  <option value="">Choose saved template…</option>
                   {savedTemplates.map((t) => (
                     <option key={t.id} value={t.download_url}>{t.name}</option>
                   ))}
                 </select>
               </>
             )}
+
+            {!template && savedTemplates.length === 0 && (
+              <span className="ms-template-divider" style={{ fontSize: "12px", color: "#c4bdb4" }}>
+                Optional — your MoM will follow its structure
+              </span>
+            )}
           </div>
 
-          {/* ── Generated MoM ── */}
+          {/* Generated output */}
           {text && mom && (
-            <MahdarScreen
-              token={token}
-              date={mom.date}
-              hijri_date={mom.hijri_date}
-              title={mom.title}
-              purpose={mom.purpose}
-              location={mom.location}
-              attendees={mom.attendees}
-              discussion={mom.discussion}
-              decisions={mom.decisions}
-              action_items={mom.action_items}
-              next_meeting={mom.next_meeting}
-              hijri_next_meeting={mom.hijri_next_meeting}
-              template={template}
-            />
+            <div style={{ marginTop: "32px" }}>
+              <MahdarScreen
+                token={token}
+                date={mom.date}
+                hijri_date={mom.hijri_date}
+                title={mom.title}
+                purpose={mom.purpose}
+                location={mom.location}
+                attendees={mom.attendees}
+                discussion={mom.discussion}
+                decisions={mom.decisions}
+                action_items={mom.action_items}
+                next_meeting={mom.next_meeting}
+                hijri_next_meeting={mom.hijri_next_meeting}
+                template={template}
+              />
+            </div>
           )}
-
         </div>
       </div>
     </>
