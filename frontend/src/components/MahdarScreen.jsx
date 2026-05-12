@@ -1,213 +1,204 @@
 import { useState, useEffect } from "react";
 
 const css = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
+
   @keyframes mah-fadein {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  .mah-root { animation: mah-fadein 0.3s ease; }
+  .mah-root {
+    animation: mah-fadein 0.35s ease;
+    font-family: 'DM Sans', system-ui, 'Segoe UI', sans-serif;
+  }
 
+  /* Textarea */
+  .mah-textarea {
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  }
   .mah-textarea:focus {
-    border-color: rgba(170,59,255,0.5) !important;
+    border-color: rgba(195,152,83,0.6) !important;
     background: #fff !important;
     outline: none;
+    box-shadow: 0 0 0 3px rgba(195,152,83,0.08);
   }
-  .mah-textarea { transition: border-color 0.15s, background 0.15s; }
 
+  /* Copy button */
   .mah-copy-btn {
     position: absolute; top: 9px; right: 9px;
-    border: 1px solid #e5e4e7;
-    background: #f7f7f8;
-    border-radius: 7px;
+    border: 1px solid #e8e7ea;
+    background: #f4f5f2;
+    border-radius: 6px;
     cursor: pointer;
-    padding: 4px 9px;
+    padding: 3px 9px;
     font-size: 11px;
     font-weight: 500;
-    color: #6b6375;
-    font-family: inherit;
+    color: #7a7585;
+    font-family: 'DM Sans', system-ui, sans-serif;
     transition: all 0.15s;
+    z-index: 1;
   }
-  .mah-copy-btn:hover { background: #f0eff2; color: #08060d; }
+  .mah-copy-btn:hover { background: #ebe9ed; color: #1a2e22; }
   .mah-copy-btn.copied { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
 
-  .mah-attendee-card { transition: box-shadow 0.15s; }
-  .mah-attendee-card:hover { box-shadow: rgba(0,0,0,0.08) 0 4px 12px -2px; }
+  /* Attendee card */
+  .mah-attendee-card {
+    transition: box-shadow 0.15s, border-color 0.15s;
+  }
+  .mah-attendee-card:hover {
+    box-shadow: rgba(26,46,34,0.08) 0 4px 14px -2px;
+    border-color: #d8d5dc;
+  }
 
+  /* Override select */
   .mah-override-select {
-    padding: 7px 10px; border-radius: 8px;
-    border: 1px solid #e5e4e7; background: #f7f7f8;
-    font-size: 12px; color: #6b6375; font-family: inherit;
-    cursor: pointer; outline: none; transition: border-color 0.15s;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e0e5;
+    background: #fafaf9;
+    font-size: 12px;
+    color: #7a7585;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+    flex: 1;
+    min-width: 0;
   }
-  .mah-override-select:focus { border-color: rgba(170,59,255,0.4); }
+  .mah-override-select:focus { border-color: rgba(195,152,83,0.5); }
 
+  /* Remember button */
   .mah-remember-btn {
-    padding: 7px 12px; border-radius: 8px;
-    border: 1px solid #e5e4e7; background: #fff;
-    font-size: 12px; font-weight: 500; color: #08060d;
-    font-family: inherit; cursor: pointer; transition: background 0.15s;
+    padding: 7px 13px;
+    border-radius: 8px;
+    border: 1px solid rgba(195,152,83,0.3);
+    background: rgba(195,152,83,0.08);
+    font-size: 12px;
+    font-weight: 500;
+    color: #a07830;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
   }
-  .mah-remember-btn:hover { background: #f7f7f8; }
+  .mah-remember-btn:hover { background: rgba(195,152,83,0.16); }
+  .mah-remember-btn.saved {
+    background: #f0fdf4;
+    color: #166534;
+    border-color: #bbf7d0;
+  }
 
+  /* Export button */
   .mah-export-btn {
-    background: #111827; color: #fff; border: none;
-    border-radius: 12px; padding: 12px 22px;
-    font-size: 14px; font-weight: 600; cursor: pointer;
-    font-family: inherit; display: flex; align-items: center; gap: 8px;
+    background: #1a2e22;
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    padding: 11px 22px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     transition: opacity 0.15s;
   }
-  .mah-export-btn:hover { opacity: 0.88; }
+  .mah-export-btn:hover { opacity: 0.86; }
 
+  /* Action rows */
   .mah-action-row { transition: background 0.12s; }
-  .mah-action-row:hover { background: #faf9fb; }
+  .mah-action-row:hover { background: #faf9f7; }
+
+  /* Action inputs */
+  .mah-action-input {
+    width: 100%;
+    padding: 7px 9px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 13px;
+    color: #1a2e22;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  }
+  .mah-action-input:focus {
+    border-color: rgba(195,152,83,0.5);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(195,152,83,0.07);
+  }
+  .mah-action-input::placeholder { color: #c4bfca; }
+
+  /* Section divider between cards */
+  .mah-divider {
+    height: 1px;
+    background: #f0eff2;
+    margin: 18px 0;
+  }
 `;
 
-const S = {
-  page: {
-    background: "#f7f7f8",
-    padding: "32px 20px",
-    fontFamily: "Inter, system-ui, 'Segoe UI', sans-serif",
-    color: "#6b6375",
-  },
-  container: { maxWidth: "820px", margin: "0 auto" },
-
-  pageHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "24px",
-    flexWrap: "wrap",
-    gap: "12px",
-  },
-  pageTitle: {
-    fontSize: "22px",
-    fontWeight: "700",
-    color: "#08060d",
-    letterSpacing: "-0.4px",
-    margin: 0,
-  },
-  pageTitleSub: { fontSize: "13px", color: "#b0adb5", marginTop: "2px" },
-
-  card: {
-    background: "#fff",
-    border: "1px solid #e5e4e7",
-    borderRadius: "18px",
-    padding: "20px 22px",
-    boxShadow: "rgba(0,0,0,0.08) 0 8px 20px -4px, rgba(0,0,0,0.04) 0 4px 6px -2px",
-    marginBottom: "16px",
-  },
-
-  sectionHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    marginBottom: "18px",
-  },
-  sectionIcon: { fontSize: "16px" },
-  sectionTitle: {
-    fontSize: "13px",
-    fontWeight: "700",
-    color: "#08060d",
-    letterSpacing: "-0.1px",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-  },
-
-  grid2: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "14px",
-  },
-  grid3: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-    gap: "12px",
-  },
-
-  field: { display: "flex", flexDirection: "column", gap: "5px" },
-  label: {
-    fontSize: "11px",
-    fontWeight: "600",
-    color: "#b0adb5",
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-  },
-  textareaWrap: { position: "relative" },
-  textarea: {
-    width: "100%",
-    minHeight: "72px",
-    padding: "10px 38px 10px 12px",
-    borderRadius: "10px",
-    border: "1px solid #e5e4e7",
-    background: "#fafafa",
-    fontSize: "13px",
-    color: "#08060d",
-    resize: "vertical",
-    boxSizing: "border-box",
-    lineHeight: "1.5",
-    fontFamily: "inherit",
-  },
-  textareaLg: { minHeight: "100px" },
-
-  // Attendees
-  attendeeCard: {
-    border: "1px solid #e5e4e7",
-    borderRadius: "12px",
-    padding: "16px",
-    marginBottom: "12px",
-    background: "#fafafa",
-  },
-  attendeeFooter: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    marginTop: "12px",
-    paddingTop: "12px",
-    borderTop: "1px solid #f0eff2",
-    flexWrap: "wrap",
-  },
-  attendeeFooterLabel: { fontSize: "11px", color: "#b0adb5", marginRight: "2px" },
-
-  // Action items table
-  actionTable: { width: "100%", borderCollapse: "collapse" },
-  actionTh: {
-    textAlign: "left",
-    fontSize: "11px",
-    fontWeight: "600",
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-    color: "#b0adb5",
-    padding: "8px 12px",
-    borderBottom: "1px solid #e5e4e7",
-  },
-  actionTd: {
-    padding: "10px 12px",
-    borderBottom: "1px solid #f0eff2",
-    verticalAlign: "top",
-  },
-  actionInput: {
-    width: "100%",
-    padding: "6px 8px",
-    borderRadius: "8px",
-    border: "1px solid transparent",
-    background: "transparent",
-    fontSize: "13px",
-    color: "#08060d",
-    fontFamily: "inherit",
-    boxSizing: "border-box",
-    outline: "none",
-    transition: "border-color 0.15s, background 0.15s",
-  },
-
-  divider: { height: "1px", background: "#f0eff2", margin: "16px 0" },
+// ── Shared tokens ──
+const card = {
+  background: "#fff",
+  border: "1px solid #e8e7ea",
+  borderRadius: "16px",
+  padding: "20px 22px",
+  boxShadow: "rgba(26,46,34,0.06) 0 8px 24px -4px, rgba(0,0,0,0.03) 0 2px 6px -1px",
+  marginBottom: "14px",
 };
+
+const sectionHeader = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  marginBottom: "18px",
+  paddingBottom: "14px",
+  borderBottom: "1px solid #f0eff2",
+};
+
+const sectionTitle = {
+  fontSize: "10.5px",
+  fontWeight: "700",
+  color: "#b0adb5",
+  letterSpacing: "0.09em",
+  textTransform: "uppercase",
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+};
+
+const label = {
+  fontSize: "10.5px",
+  fontWeight: "600",
+  color: "#b0adb5",
+  letterSpacing: "0.07em",
+  textTransform: "uppercase",
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+};
+
+const textarea = {
+  width: "100%",
+  minHeight: "72px",
+  padding: "10px 42px 10px 12px",
+  borderRadius: "10px",
+  border: "1px solid #e2e0e5",
+  background: "#fafaf9",
+  fontSize: "13px",
+  color: "#1a2e22",
+  resize: "vertical",
+  boxSizing: "border-box",
+  lineHeight: "1.6",
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+};
+
+// ── Sub-components ──
 
 function CopyButton({ value }) {
   const [copied, setCopied] = useState(false);
   const handle = async () => {
     await navigator.clipboard.writeText(value || "");
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), 1600);
   };
   return (
     <button className={`mah-copy-btn${copied ? " copied" : ""}`} onClick={handle}>
@@ -216,15 +207,15 @@ function CopyButton({ value }) {
   );
 }
 
-function Field({ label, value, onChange, large }) {
+function Field({ label: lbl, value, onChange, large }) {
   return (
-    <div style={S.field}>
-      <label style={S.label}>{label}</label>
-      <div style={S.textareaWrap}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+      <label style={label}>{lbl}</label>
+      <div style={{ position: "relative" }}>
         <CopyButton value={value} />
         <textarea
           className="mah-textarea"
-          style={{ ...S.textarea, ...(large ? S.textareaLg : {}) }}
+          style={{ ...textarea, ...(large ? { minHeight: "108px" } : {}) }}
           value={value || ""}
           onChange={e => onChange(e.target.value)}
         />
@@ -233,14 +224,37 @@ function Field({ label, value, onChange, large }) {
   );
 }
 
-function SectionHeader({ icon, title }) {
+function SectionHead({ icon, title }) {
   return (
-    <div style={S.sectionHeader}>
-      <span style={S.sectionIcon}>{icon}</span>
-      <span style={S.sectionTitle}>{title}</span>
+    <div style={sectionHeader}>
+      <span style={{ fontSize: "15px" }}>{icon}</span>
+      <span style={sectionTitle}>{title}</span>
     </div>
   );
 }
+
+function RememberButton({ onClick }) {
+  const [state, setState] = useState("idle"); // idle | saving | saved
+
+  const handle = async () => {
+    setState("saving");
+    await onClick();
+    setState("saved");
+    setTimeout(() => setState("idle"), 2000);
+  };
+
+  return (
+    <button
+      className={`mah-remember-btn${state === "saved" ? " saved" : ""}`}
+      onClick={handle}
+      disabled={state === "saving"}
+    >
+      {state === "saved" ? "✓ Saved" : state === "saving" ? "Saving…" : "💾 Remember"}
+    </button>
+  );
+}
+
+// ── Main component ──
 
 function MahdarScreen({
   token, date, hijri_date, title, purpose, location,
@@ -285,6 +299,20 @@ function MahdarScreen({
     setActionItems(updated);
   };
 
+  const saveAttendee = async (attendee) => {
+    await fetch(`${import.meta.env.VITE_API_URL}/save-attendee`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token,
+        name: attendee.name,
+        email: attendee.email,
+        role: attendee.role,
+        aliases: [],
+      }),
+    });
+  };
+
   const handleExport = async () => {
     if (!template) return alert("Please upload a Word template first!");
     const formData = new FormData();
@@ -307,48 +335,123 @@ function MahdarScreen({
     a.click();
   };
 
+  const th = {
+    textAlign: "left",
+    fontSize: "10.5px",
+    fontWeight: "600",
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: "#b0adb5",
+    padding: "10px 14px",
+    borderBottom: "1px solid #e8e7ea",
+    background: "#faf9f7",
+    fontFamily: "'DM Sans', system-ui, sans-serif",
+  };
+
+  const td = {
+    padding: "10px 14px",
+    borderBottom: "1px solid #f0eff2",
+    verticalAlign: "middle",
+  };
+
   return (
     <>
       <style>{css}</style>
-      <div className="mah-root" style={S.page}>
-        <div style={S.container}>
 
-          {/* Page header */}
-          <div style={S.pageHeader}>
-            <div>
-              <h1 style={S.pageTitle}>MoM Report</h1>
-              <div style={S.pageTitleSub}>Review and edit before exporting</div>
-            </div>
-            <button className="mah-export-btn" onClick={handleExport}>
-              📄 Export to Word
-            </button>
+      {/* ── Separator between upload form and MoM result ── */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: "12px",
+        margin: "28px 0 22px",
+      }}>
+        <div style={{ flex: 1, height: "1px", background: "#e8e7ea" }} />
+        <span style={{
+          fontSize: "10.5px", fontWeight: "600", letterSpacing: "0.09em",
+          textTransform: "uppercase", color: "#c4bfca",
+          fontFamily: "'DM Sans', system-ui, sans-serif",
+        }}>
+          Generated Report
+        </span>
+        <div style={{ flex: 1, height: "1px", background: "#e8e7ea" }} />
+      </div>
+
+      <div className="mah-root">
+
+        {/* ── Report header ── */}
+        <div style={{
+          display: "flex", alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap", gap: "12px",
+          marginBottom: "18px",
+        }}>
+          <div>
+            <h2 style={{
+              fontFamily: "'DM Serif Display', serif",
+              fontSize: "22px", fontWeight: "400",
+              color: "#1a2e22", letterSpacing: "-0.3px", margin: "0 0 3px",
+            }}>
+              MoM Report
+            </h2>
+            <p style={{ fontSize: "12px", color: "#a09aaa", margin: 0 }}>
+              Review and edit before exporting
+            </p>
           </div>
+          <button className="mah-export-btn" onClick={handleExport}>
+            📄 Export to Word
+          </button>
+        </div>
 
-          {/* ── Metadata ── */}
-          <div style={S.card}>
-            <SectionHeader icon="🗂️" title="Meeting Info" />
-            <div style={S.grid2}>
-              <Field label="Date" value={edit_date} onChange={setDate} />
-              <Field label="Hijri Date" value={edit_hijri_date} onChange={setHijriDate} />
-              <Field label="Title" value={edit_title} onChange={setTitle} />
-              <Field label="Location" value={edit_location} onChange={setLocation} />
-              <Field label="Next Meeting" value={edit_next_meeting} onChange={setNextMeeting} />
-              <Field label="Hijri Next Meeting" value={edit_hijri_next_meeting} onChange={setHijriNextMeeting} />
-            </div>
+        {/* ── Meeting Info ── */}
+        <div style={card}>
+          <SectionHead icon="🗂️" title="Meeting Info" />
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "14px",
+          }}>
+            <Field label="Date" value={edit_date} onChange={setDate} />
+            <Field label="Hijri Date" value={edit_hijri_date} onChange={setHijriDate} />
+            <Field label="Title" value={edit_title} onChange={setTitle} />
+            <Field label="Location" value={edit_location} onChange={setLocation} />
+            <Field label="Next Meeting" value={edit_next_meeting} onChange={setNextMeeting} />
+            <Field label="Hijri Next Meeting" value={edit_hijri_next_meeting} onChange={setHijriNextMeeting} />
           </div>
+        </div>
 
-          {/* ── Attendees ── */}
-          <div style={S.card}>
-            <SectionHeader icon="👥" title="Attendees" />
+        {/* ── Attendees ── */}
+        <div style={card}>
+          <SectionHead icon="👥" title="Attendees" />
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {edit_attendees.map((attendee, index) => (
-              <div key={index} className="mah-attendee-card" style={S.attendeeCard}>
-                <div style={S.grid3}>
+              <div
+                key={index}
+                className="mah-attendee-card"
+                style={{
+                  border: "1px solid #e8e7ea",
+                  borderRadius: "12px",
+                  padding: "16px",
+                  background: "#fafaf9",
+                }}
+              >
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                  gap: "12px",
+                }}>
                   <Field label="Name" value={attendee.name} onChange={v => updateAttendee(index, "name", v)} />
                   <Field label="Email" value={attendee.email} onChange={v => updateAttendee(index, "email", v)} />
                   <Field label="Role" value={attendee.role} onChange={v => updateAttendee(index, "role", v)} />
                 </div>
-                <div style={S.attendeeFooter}>
-                  <span style={S.attendeeFooterLabel}>Override:</span>
+
+                {/* Footer: override + remember */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: "8px",
+                  marginTop: "12px", paddingTop: "12px",
+                  borderTop: "1px solid #f0eff2",
+                  flexWrap: "wrap",
+                }}>
+                  <span style={{ fontSize: "11px", color: "#b0adb5", whiteSpace: "nowrap" }}>
+                    Override:
+                  </span>
                   <select
                     className="mah-override-select"
                     onChange={e => {
@@ -361,89 +464,76 @@ function MahdarScreen({
                     }}
                   >
                     <option value="">Select saved attendee…</option>
-                    {saved_attendees.map((a, i) => <option key={i} value={a.name}>{a.name}</option>)}
+                    {saved_attendees.map((a, i) => (
+                      <option key={i} value={a.name}>{a.name}</option>
+                    ))}
                   </select>
-                  <button
-                    className="mah-remember-btn"
-                    onClick={async () => {
-                      const res = await fetch(`${import.meta.env.VITE_API_URL}/save-attendee`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ token, name: attendee.name, email: attendee.email, role: attendee.role, aliases: [] }),
-                      });
-                      const data = await res.json();
-                      alert(data.message);
-                    }}
-                  >
-                    💾 Remember
-                  </button>
+                  <RememberButton onClick={() => saveAttendee(attendee)} />
                 </div>
               </div>
             ))}
           </div>
+        </div>
 
-          {/* ── Meeting Details ── */}
-          <div style={S.card}>
-            <SectionHeader icon="📋" title="Meeting Details" />
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              <Field label="Purpose" value={edit_purpose} onChange={setPurpose} large />
-              <Field label="Discussion" value={edit_discussion} onChange={setDiscussion} large />
-              <Field label="Decisions" value={edit_decisions} onChange={setDecisions} large />
-            </div>
+        {/* ── Meeting Details ── */}
+        <div style={card}>
+          <SectionHead icon="📋" title="Meeting Details" />
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <Field label="Purpose" value={edit_purpose} onChange={setPurpose} large />
+            <Field label="Discussion" value={edit_discussion} onChange={setDiscussion} large />
+            <Field label="Decisions" value={edit_decisions} onChange={setDecisions} large />
           </div>
+        </div>
 
-          {/* ── Action Items ── */}
-          <div style={S.card}>
-            <SectionHeader icon="✅" title="Action Items" />
-            <div style={{ overflowX: "auto" }}>
-              <table style={S.actionTable}>
-                <thead>
-                  <tr>
-                    <th style={S.actionTh}>#</th>
-                    <th style={S.actionTh}>Task</th>
-                    <th style={S.actionTh}>Owner</th>
-                    <th style={S.actionTh}>Deadline</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {edit_actionItems.map((item, index) => (
-                    <tr key={index} className="mah-action-row" style={index === edit_actionItems.length - 1 ? { ...S.actionTd, borderBottom: "none" } : {}}>
-                      <td style={{ ...S.actionTd, color: "#b0adb5", fontSize: "12px", width: "32px", borderBottom: index === edit_actionItems.length - 1 ? "none" : "1px solid #f0eff2" }}>
+        {/* ── Action Items ── */}
+        <div style={{ ...card, padding: 0, overflow: "hidden" }}>
+          <div style={{ padding: "18px 22px 0" }}>
+            <SectionHead icon="✅" title="Action Items" />
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ ...th, width: "36px" }}>#</th>
+                  <th style={th}>Task</th>
+                  <th style={th}>Owner</th>
+                  <th style={th}>Deadline</th>
+                </tr>
+              </thead>
+              <tbody>
+                {edit_actionItems.map((item, index) => {
+                  const isLast = index === edit_actionItems.length - 1;
+                  const cellStyle = { ...td, borderBottom: isLast ? "none" : "1px solid #f0eff2" };
+                  return (
+                    <tr key={index} className="mah-action-row">
+                      <td style={{ ...cellStyle, color: "#c4bfca", fontSize: "12px", fontFamily: "ui-monospace, Consolas, monospace", textAlign: "center" }}>
                         {index + 1}
                       </td>
                       {["task", "owner", "deadline"].map(field => (
-                        <td key={field} style={{ ...S.actionTd, borderBottom: index === edit_actionItems.length - 1 ? "none" : "1px solid #f0eff2" }}>
+                        <td key={field} style={cellStyle}>
                           <input
                             className="mah-action-input"
-                            style={S.actionInput}
                             value={item[field] || ""}
+                            placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
                             onChange={e => updateActionItem(index, field, e.target.value)}
-                            onFocus={e => {
-                              e.target.style.borderColor = "rgba(170,59,255,0.4)";
-                              e.target.style.background = "#fff";
-                            }}
-                            onBlur={e => {
-                              e.target.style.borderColor = "transparent";
-                              e.target.style.background = "transparent";
-                            }}
                           />
                         </td>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-
-          {/* Bottom export */}
-          <div style={{ display: "flex", justifyContent: "flex-end", paddingBottom: "32px" }}>
-            <button className="mah-export-btn" onClick={handleExport}>
-              📄 Export to Word
-            </button>
-          </div>
-
         </div>
+
+        {/* ── Bottom export ── */}
+        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "4px", paddingBottom: "8px" }}>
+          <button className="mah-export-btn" onClick={handleExport}>
+            📄 Export to Word
+          </button>
+        </div>
+
       </div>
     </>
   );

@@ -1,73 +1,66 @@
 import { useState } from "react";
 import supabase from "../supabase";
+import logoUrl from "/icon-512.png";
 
 const css = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
+
   @keyframes login-fadein {
-    from { opacity: 0; transform: translateY(12px); }
+    from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  .login-card { animation: login-fadein 0.35s ease; }
+  .login-card { animation: login-fadein 0.38s ease; }
 
+  /* Input */
   .login-input {
     width: 100%;
     padding: 11px 14px;
     border-radius: 11px;
-    border: 1px solid #e5e4e7;
-    background: #f7f7f8;
+    border: 1px solid #e2e0e5;
+    background: #fafaf9;
     font-size: 14px;
-    color: #08060d;
-    font-family: inherit;
+    color: #1a2e22;
+    font-family: 'DM Sans', system-ui, sans-serif;
     outline: none;
     box-sizing: border-box;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   }
   .login-input:focus {
-    border-color: rgba(170,59,255,0.5);
+    border-color: rgba(195,152,83,0.6);
     background: #fff;
+    box-shadow: 0 0 0 3px rgba(195,152,83,0.09);
   }
   .login-input::placeholder { color: #c4bfca; }
 
+  /* Primary button */
   .login-btn-primary {
     width: 100%;
-    padding: 11px;
+    padding: 12px;
     border: none;
     border-radius: 11px;
-    background: #111827;
+    background: #1a2e22;
     color: #fff;
     font-size: 14px;
     font-weight: 600;
-    font-family: inherit;
+    font-family: 'DM Sans', system-ui, sans-serif;
     cursor: pointer;
     transition: opacity 0.15s;
+    letter-spacing: 0.01em;
   }
-  .login-btn-primary:hover { opacity: 0.88; }
-  .login-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+  .login-btn-primary:hover { opacity: 0.86; }
+  .login-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .login-btn-secondary {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #e5e4e7;
-    border-radius: 11px;
-    background: #fff;
-    color: #08060d;
-    font-size: 14px;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .login-btn-secondary:hover { background: #f7f7f8; }
-
+  /* Google button */
   .login-btn-google {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #e5e4e7;
+    padding: 11px;
+    border: 1px solid #e2e0e5;
     border-radius: 11px;
     background: #fff;
-    color: #08060d;
+    color: #1a2e22;
     font-size: 14px;
     font-weight: 500;
-    font-family: inherit;
+    font-family: 'DM Sans', system-ui, sans-serif;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -75,20 +68,28 @@ const css = `
     gap: 9px;
     transition: background 0.15s, border-color 0.15s;
   }
-  .login-btn-google:hover { background: #f7f7f8; border-color: #d1cdd7; }
+  .login-btn-google:hover { background: #f4f5f2; border-color: #c8c5cc; }
 
+  /* Divider */
   .login-divider {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin: 4px 0;
   }
-  .login-divider-line { flex: 1; height: 1px; background: #e5e4e7; }
-  .login-divider-text { font-size: 11px; color: #c4bfca; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+  .login-divider-line { flex: 1; height: 1px; background: #eeecf0; }
+  .login-divider-text {
+    font-size: 10.5px;
+    color: #c4bfca;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
 
+  /* Tab bar */
   .login-tab-bar {
     display: flex;
-    background: #f4f3f6;
+    background: #f2f1f4;
     border-radius: 10px;
     padding: 3px;
     gap: 2px;
@@ -103,17 +104,17 @@ const css = `
     color: #9ca3a8;
     font-size: 13px;
     font-weight: 500;
-    font-family: inherit;
+    font-family: 'DM Sans', system-ui, sans-serif;
     cursor: pointer;
     transition: all 0.15s;
   }
   .login-tab.active {
     background: #fff;
-    color: #08060d;
+    color: #1a2e22;
     font-weight: 600;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: 0 1px 4px rgba(26,46,34,0.1);
   }
-  .login-tab:hover:not(.active) { color: #6b6375; }
+  .login-tab:hover:not(.active) { color: #1a2e22; }
 `;
 
 const GoogleIcon = () => (
@@ -129,7 +130,7 @@ function LoginScreen({ setUser }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState("login"); // "login" | "signup"
+  const [mode, setMode] = useState("login");
 
   const handleLogin = async () => {
     setLoading(true);
@@ -161,39 +162,57 @@ function LoginScreen({ setUser }) {
       <style>{css}</style>
       <div style={{
         minHeight: "100vh",
-        background: "#f7f7f8",
+        background: "#f4f5f2",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: "Inter, system-ui, 'Segoe UI', sans-serif",
+        fontFamily: "'DM Sans', system-ui, 'Segoe UI', sans-serif",
         padding: "20px",
       }}>
         <div className="login-card" style={{
           width: "100%",
-          maxWidth: "380px",
+          maxWidth: "368px",
           display: "flex",
           flexDirection: "column",
-          gap: "0",
         }}>
 
-          {/* Logo */}
-          <div style={{ textAlign: "center", marginBottom: "28px" }}>
-            <div style={{ fontSize: "32px", marginBottom: "8px" }}>🎙️</div>
-            <div style={{ fontSize: "22px", fontWeight: "700", color: "#08060d", letterSpacing: "-0.5px" }}>
-              Mah<span style={{ color: "#aa3bff" }}>dari</span>
+          {/* ── Logo & wordmark ── */}
+          <div style={{ textAlign: "center", marginBottom: "26px" }}>
+            <img
+              src={logoUrl}
+              alt="Mahdari"
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "16px",
+                marginBottom: "14px",
+                display: "block",
+                margin: "0 auto 14px",
+              }}
+            />
+            <div style={{
+              fontFamily: "'DM Serif Display', serif",
+              fontSize: "24px",
+              fontWeight: "400",
+              color: "#1a2e22",
+              letterSpacing: "-0.4px",
+              lineHeight: 1,
+              marginBottom: "6px",
+            }}>
+              Mah<span style={{ color: "#c39853" }}>dari</span>
             </div>
-            <div style={{ fontSize: "13px", color: "#b0adb5", marginTop: "4px" }}>
+            <div style={{ fontSize: "13px", color: "#a09aaa" }}>
               Your meeting minutes, instantly.
             </div>
           </div>
 
-          {/* Card */}
+          {/* ── Card ── */}
           <div style={{
             background: "#fff",
-            border: "1px solid #e5e4e7",
+            border: "1px solid #e8e7ea",
             borderRadius: "20px",
             padding: "24px",
-            boxShadow: "rgba(0,0,0,0.08) 0 8px 24px -4px, rgba(0,0,0,0.04) 0 4px 6px -2px",
+            boxShadow: "rgba(26,46,34,0.07) 0 10px 28px -4px, rgba(0,0,0,0.03) 0 4px 8px -2px",
             display: "flex",
             flexDirection: "column",
             gap: "12px",
@@ -201,10 +220,16 @@ function LoginScreen({ setUser }) {
 
             {/* Tab switcher */}
             <div className="login-tab-bar">
-              <button className={`login-tab${mode === "login" ? " active" : ""}`} onClick={() => setMode("login")}>
+              <button
+                className={`login-tab${mode === "login" ? " active" : ""}`}
+                onClick={() => setMode("login")}
+              >
                 Sign in
               </button>
-              <button className={`login-tab${mode === "signup" ? " active" : ""}`} onClick={() => setMode("signup")}>
+              <button
+                className={`login-tab${mode === "signup" ? " active" : ""}`}
+                onClick={() => setMode("signup")}
+              >
                 Create account
               </button>
             </div>
@@ -229,13 +254,15 @@ function LoginScreen({ setUser }) {
               />
             </div>
 
-            {/* Primary action */}
+            {/* Primary CTA */}
             <button
               className="login-btn-primary"
               onClick={handleSubmit}
               disabled={loading}
             >
-              {loading ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
+              {loading
+                ? "Please wait…"
+                : mode === "login" ? "Sign in" : "Create account"}
             </button>
 
             {/* Divider */}
@@ -253,8 +280,14 @@ function LoginScreen({ setUser }) {
 
           </div>
 
-          {/* Footer note */}
-          <div style={{ textAlign: "center", fontSize: "12px", color: "#c4bfca", marginTop: "16px" }}>
+          {/* Footer */}
+          <div style={{
+            textAlign: "center",
+            fontSize: "11.5px",
+            color: "#c4bfca",
+            marginTop: "16px",
+            fontFamily: "'DM Sans', system-ui, sans-serif",
+          }}>
             By continuing you agree to our terms of service.
           </div>
 

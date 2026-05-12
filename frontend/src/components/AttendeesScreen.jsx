@@ -1,235 +1,193 @@
 import { useState, useEffect } from "react";
 import supabase from "../supabase";
 
-const S = {
-  page: {
-    minHeight: "100vh",
-    background: "#f7f7f8",
-    padding: "16px 20px",
-    fontFamily: "Inter, system-ui, 'Segoe UI', sans-serif",
-    color: "#6b6375",
-    boxSizing: "border-box",
-  },
-  container: {
-    maxWidth: "820px",
-    margin: "0 auto",
-  },
-
-  // ── Header ──
-  header: {
-    marginBottom: "20px",
-  },
-  titleRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    marginBottom: "2px",
-  },
-  title: {
-    fontSize: "22px",
-    fontWeight: "600",
-    color: "#08060d",
-    letterSpacing: "-0.4px",
-    margin: 0,
-  },
-  badge: {
-    fontSize: "12px",
-    fontWeight: "500",
-    color: "#aa3bff",
-    background: "rgba(170,59,255,0.1)",
-    border: "1px solid rgba(170,59,255,0.25)",
-    borderRadius: "20px",
-    padding: "2px 9px",
-  },
-
-  // ── Card ──
-  card: {
-    background: "#fff",
-    border: "1px solid #e5e4e7",
-    borderRadius: "18px",
-    padding: "18px",
-    boxShadow: "rgba(0,0,0,0.1) 0 10px 15px -3px, rgba(0,0,0,0.05) 0 4px 6px -2px",
-    marginBottom: "16px",
-  },
-  sectionLabel: {
-    fontSize: "11px",
-    fontWeight: "600",
-    letterSpacing: "0.07em",
-    textTransform: "uppercase",
-    color: "#b0adb5",
-    marginBottom: "14px",
-  },
-
-  // ── Add form grid ──
-  addGrid: {
-    display: "grid",
-    gridTemplateColumns: "1.4fr 1.4fr 0.9fr 1.6fr auto",
-    gap: "10px",
-    alignItems: "end",
-  },
-  field: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-  },
-  fieldLabel: {
-    fontSize: "11px",
-    fontWeight: "500",
-    color: "#9ca3a8",
-  },
-  input: {
-    padding: "9px 12px",
-    borderRadius: "10px",
-    border: "1px solid #e5e4e7",
-    background: "#f7f7f8",
-    fontSize: "13px",
-    color: "#08060d",
-    outline: "none",
-    fontFamily: "inherit",
-    transition: "border-color 0.15s",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-
-  // ── Buttons ──
-  btnPrimary: {
-    background: "#111827",
-    color: "#fff",
-    border: "none",
-    borderRadius: "10px",
-    padding: "9px 16px",
-    fontSize: "13px",
-    fontWeight: "600",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    whiteSpace: "nowrap",
-    transition: "opacity 0.15s",
-  },
-  btnSecondary: {
-    background: "#fff",
-    color: "#08060d",
-    border: "1px solid #e5e4e7",
-    borderRadius: "10px",
-    padding: "7px 13px",
-    fontSize: "13px",
-    fontWeight: "500",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    whiteSpace: "nowrap",
-  },
-  btnAccent: {
-    background: "rgba(170,59,255,0.1)",
-    color: "#aa3bff",
-    border: "1px solid rgba(170,59,255,0.25)",
-    borderRadius: "10px",
-    padding: "7px 13px",
-    fontSize: "13px",
-    fontWeight: "600",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    whiteSpace: "nowrap",
-  },
-  btnDanger: {
-    background: "transparent",
-    color: "#c4b8cc",
-    border: "none",
-    borderRadius: "8px",
-    padding: "5px 8px",
-    fontSize: "14px",
-    cursor: "pointer",
-    fontFamily: "inherit",
-  },
-
-  // ── Table ──
-  tableWrap: {
-    overflowX: "auto",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-  th: {
-    textAlign: "left",
-    fontSize: "11px",
-    fontWeight: "600",
-    letterSpacing: "0.07em",
-    textTransform: "uppercase",
-    color: "#b0adb5",
-    padding: "10px 14px",
-    borderBottom: "1px solid #e5e4e7",
-  },
-  td: {
-    padding: "12px 14px",
-    fontSize: "14px",
-    borderBottom: "1px solid #f0eff2",
-    verticalAlign: "middle",
-    color: "#6b6375",
-  },
-  tdName: {
-    fontWeight: "600",
-    color: "#08060d",
-    fontSize: "14px",
-  },
-  aliasTag: {
-    display: "inline-block",
-    background: "#f4f3ec",
-    border: "1px solid #e5e4e7",
-    borderRadius: "5px",
-    padding: "1px 7px",
-    fontSize: "11px",
-    color: "#6b6375",
-    margin: "1px 2px",
-    fontFamily: "ui-monospace, Consolas, monospace",
-  },
-  actions: {
-    display: "flex",
-    gap: "6px",
-    justifyContent: "flex-end",
-    alignItems: "center",
-  },
-  dash: {
-    color: "#d1cdd7",
-  },
-
-  // ── Empty / Loading ──
-  empty: {
-    textAlign: "center",
-    padding: "40px 20px",
-    color: "#b0adb5",
-    fontSize: "14px",
-  },
-  loading: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "10px",
-    height: "100vh",
-    fontFamily: "Inter, system-ui, sans-serif",
-    color: "#6b6375",
-    background: "#f7f7f8",
-  },
-};
-
 const css = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
+
+  @keyframes att-fadein {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .att-root {
+    animation: att-fadein 0.3s ease;
+    font-family: 'DM Sans', system-ui, 'Segoe UI', sans-serif;
+  }
+
   @keyframes att-spin { to { transform: rotate(360deg); } }
   .att-spinner {
-    width: 16px; height: 16px;
-    border: 2px solid #e5e4e7;
-    border-top-color: #aa3bff;
+    width: 15px; height: 15px;
+    border: 2px solid #e2e0e5;
+    border-top-color: #1a2e22;
     border-radius: 50%;
     animation: att-spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  /* Inputs */
+  .att-input {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid #e2e0e5;
+    background: #fafaf9;
+    font-size: 13px;
+    color: #1a2e22;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   }
   .att-input:focus {
-    border-color: rgba(170,59,255,0.5) !important;
-    background: #fff !important;
+    border-color: rgba(195,152,83,0.6);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(195,152,83,0.08);
   }
-  .att-row:hover td { background: #faf9fb; }
+  .att-input::placeholder { color: #c4bfca; }
+
+  /* Inline edit input (inside table cell) */
+  .att-input-inline {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e0e5;
+    background: #fafaf9;
+    font-size: 13px;
+    color: #1a2e22;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  }
+  .att-input-inline:focus {
+    border-color: rgba(195,152,83,0.6);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(195,152,83,0.08);
+  }
+  .att-input-inline::placeholder { color: #c4bfca; }
+
+  /* Table rows */
+  .att-row { transition: background 0.12s; }
+  .att-row:hover td { background: #faf9f7 !important; }
+  .att-row.editing td { background: rgba(195,152,83,0.04) !important; }
   .att-row:last-child td { border-bottom: none !important; }
-  .att-btn-danger:hover { color: #dc2626 !important; background: rgba(220,38,38,0.07) !important; }
-  .att-btn-secondary:hover { background: #f7f7f8 !important; }
+
+  /* Buttons */
+  .att-btn-primary {
+    background: #1a2e22;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+    width: 100%;
+  }
+  .att-btn-primary:hover { opacity: 0.86; }
+
+  .att-btn-save {
+    background: rgba(195,152,83,0.12);
+    color: #a07830;
+    border: 1px solid rgba(195,152,83,0.35);
+    border-radius: 8px;
+    padding: 6px 13px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .att-btn-save:hover { background: rgba(195,152,83,0.2); }
+
+  .att-btn-cancel {
+    background: transparent;
+    color: #b0adb5;
+    border: 1px solid #e2e0e5;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+  }
+  .att-btn-cancel:hover { background: #f4f5f2; color: #7a7585; }
+
+  .att-btn-edit {
+    background: transparent;
+    color: #b0adb5;
+    border: 1px solid #e2e0e5;
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .att-btn-edit:hover {
+    background: #f4f5f2;
+    color: #1a2e22;
+    border-color: #c8c5cc;
+  }
+
+  .att-btn-delete {
+    background: transparent;
+    color: #d1cdd7;
+    border: none;
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    line-height: 1;
+    transition: color 0.15s, background 0.15s;
+  }
+  .att-btn-delete:hover {
+    color: #dc2626;
+    background: rgba(220,38,38,0.06);
+  }
+
+  /* Alias tag */
+  .att-alias-tag {
+    display: inline-block;
+    background: #f2f1f4;
+    border: 1px solid #e8e7ea;
+    border-radius: 5px;
+    padding: 1px 7px;
+    font-size: 11px;
+    color: #7a7585;
+    margin: 1px 2px;
+    font-family: ui-monospace, Consolas, monospace;
+  }
+
+  /* Count badge */
+  .att-count-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #a07830;
+    background: rgba(195,152,83,0.12);
+    border: 1px solid rgba(195,152,83,0.3);
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+
+  /* Mobile responsive form */
+  @media (max-width: 640px) {
+    .att-add-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
 `;
 
-const Dash = () => <span style={S.dash}>—</span>;
+const Dash = () => <span style={{ color: "#d1cdd7" }}>—</span>;
 
 function AttendeesScreen() {
   const [token, setToken] = useState(null);
@@ -258,9 +216,7 @@ function AttendeesScreen() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    if (token) fetchAttendees();
-  }, [token]);
+  useEffect(() => { if (token) fetchAttendees(); }, [token]);
 
   const handleDelete = async (id) => {
     if (!confirm("Delete this attendee?")) return;
@@ -316,12 +272,58 @@ function AttendeesScreen() {
     fetchAttendees();
   };
 
+  // ── Shared tokens ──
+  const card = {
+    background: "#fff",
+    border: "1px solid #e8e7ea",
+    borderRadius: "16px",
+    boxShadow: "rgba(26,46,34,0.06) 0 8px 24px -4px, rgba(0,0,0,0.03) 0 2px 6px -1px",
+    marginBottom: "14px",
+  };
+
+  const sectionLabel = {
+    fontSize: "10px",
+    fontWeight: "600",
+    letterSpacing: "0.09em",
+    textTransform: "uppercase",
+    color: "#b0adb5",
+    marginBottom: "14px",
+    fontFamily: "'DM Sans', system-ui, sans-serif",
+  };
+
+  const th = {
+    textAlign: "left",
+    fontSize: "10.5px",
+    fontWeight: "600",
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: "#b0adb5",
+    padding: "11px 18px",
+    borderBottom: "1px solid #e8e7ea",
+    fontFamily: "'DM Sans', system-ui, sans-serif",
+    background: "#faf9f7",
+  };
+
+  const td = {
+    padding: "13px 18px",
+    fontSize: "13px",
+    borderBottom: "1px solid #f0eff2",
+    verticalAlign: "middle",
+    color: "#7a7585",
+  };
+
   if (loading) return (
     <>
       <style>{css}</style>
-      <div style={S.loading}>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        gap: "10px", height: "100vh",
+        fontFamily: "'DM Sans', system-ui, sans-serif",
+        color: "#7a7585", background: "#f4f5f2",
+        fontSize: "13px",
+      }}>
         <div className="att-spinner" />
-        <span>Loading attendees…</span>
+        Loading attendees…
       </div>
     </>
   );
@@ -329,100 +331,150 @@ function AttendeesScreen() {
   return (
     <>
       <style>{css}</style>
-      <div style={S.page}>
-        <div style={S.container}>
+      <div className="att-root" style={{
+        minHeight: "100vh",
+        background: "#f4f5f2",
+        padding: "28px 20px 48px",
+        color: "#7a7585",
+        boxSizing: "border-box",
+      }}>
+        <div style={{ maxWidth: "860px", margin: "0 auto" }}>
 
-          {/* Header */}
-          <div style={S.header}>
-            <div style={S.titleRow}>
-              <h1 style={S.title}>Attendees</h1>
-              {attendees.length > 0 && <span style={S.badge}>{attendees.length}</span>}
+          {/* ── Header ── */}
+          <div style={{ marginBottom: "22px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+              <h1 style={{
+                fontFamily: "'DM Serif Display', serif",
+                fontSize: "26px",
+                fontWeight: "400",
+                color: "#1a2e22",
+                letterSpacing: "-0.4px",
+                margin: 0,
+              }}>
+                Attendees
+              </h1>
+              {attendees.length > 0 && (
+                <span className="att-count-badge">{attendees.length}</span>
+              )}
             </div>
+            <p style={{ fontSize: "13px", color: "#a09aaa", margin: 0 }}>
+              Save recurring attendees so they're recognized automatically in your meeting notes.
+            </p>
           </div>
 
-          {/* Add form */}
-          <div style={S.card}>
-            <div style={S.sectionLabel}>Add attendee</div>
-            <div style={S.addGrid}>
+          {/* ── Add form card ── */}
+          <div style={{ ...card, padding: "20px 22px" }}>
+            <div style={sectionLabel}>Add attendee</div>
+
+            {/* 2-col grid for the 4 fields, button full-width below */}
+            <div
+              className="att-add-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+                marginBottom: "12px",
+              }}
+            >
               {[
-                { key: "name", label: "Name *", placeholder: "Jane Smith" },
-                { key: "email", label: "Email", placeholder: "jane@example.com" },
-                { key: "role", label: "Role", placeholder: "Designer" },
-                { key: "aliases", label: "Aliases (comma separated)", placeholder: "J, Janie" },
+                { key: "name",    label: "Name *",                   placeholder: "Jane Smith" },
+                { key: "email",   label: "Email",                    placeholder: "jane@example.com" },
+                { key: "role",    label: "Role",                     placeholder: "Designer" },
+                { key: "aliases", label: "Aliases (comma-separated)", placeholder: "J, Janie" },
               ].map(({ key, label, placeholder }) => (
-                <div key={key} style={S.field}>
-                  <label style={S.fieldLabel}>{label}</label>
+                <div key={key} style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                  <label style={{
+                    fontSize: "11px", fontWeight: "500", color: "#9ca3a8",
+                    fontFamily: "'DM Sans', system-ui, sans-serif",
+                  }}>
+                    {label}
+                  </label>
                   <input
                     className="att-input"
-                    style={S.input}
                     placeholder={placeholder}
                     value={newAttendee[key]}
                     onChange={e => setNewAttendee({ ...newAttendee, [key]: e.target.value })}
-                    onKeyDown={e => key === "name" && e.key === "Enter" && handleAdd()}
+                    onKeyDown={e => e.key === "Enter" && handleAdd()}
                   />
                 </div>
               ))}
-              <button style={S.btnPrimary} onClick={handleAdd}>Add</button>
             </div>
+
+            <button className="att-btn-primary" onClick={handleAdd}>
+              + Add attendee
+            </button>
           </div>
 
-          {/* Table */}
-          <div style={S.card}>
+          {/* ── Attendees table ── */}
+          <div style={{ ...card, padding: 0, overflow: "hidden" }}>
             {attendees.length === 0 ? (
-              <div style={S.empty}>No attendees yet. Add one above to get started.</div>
+              <div style={{
+                textAlign: "center", padding: "48px 20px",
+                color: "#b0adb5", fontSize: "14px",
+                fontFamily: "'DM Sans', system-ui, sans-serif",
+              }}>
+                <div style={{ fontSize: "28px", marginBottom: "10px" }}>👥</div>
+                No attendees yet. Add one above to get started.
+              </div>
             ) : (
-              <div style={S.tableWrap}>
-                <table style={S.table}>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
-                      <th style={S.th}>Name</th>
-                      <th style={S.th}>Email</th>
-                      <th style={S.th}>Role</th>
-                      <th style={S.th}>Aliases</th>
-                      <th style={{ ...S.th, textAlign: "right" }}></th>
+                      <th style={th}>Name</th>
+                      <th style={th}>Email</th>
+                      <th style={th}>Role</th>
+                      <th style={th}>Aliases</th>
+                      <th style={{ ...th, textAlign: "right" }} />
                     </tr>
                   </thead>
                   <tbody>
                     {attendees.map(a => (
-                      <tr key={a.id} className="att-row">
+                      <tr key={a.id} className={`att-row${editingId === a.id ? " editing" : ""}`}>
+
                         {editingId === a.id ? (
+                          /* ── Edit mode ── */
                           <>
                             {["name", "email", "role", "aliases"].map(field => (
-                              <td key={field} style={S.td}>
+                              <td key={field} style={{ ...td, paddingTop: "10px", paddingBottom: "10px" }}>
                                 <input
-                                  className="att-input"
-                                  style={S.input}
+                                  className="att-input-inline"
                                   value={editForm[field]}
                                   placeholder={field === "aliases" ? "alias1, alias2" : ""}
                                   onChange={e => setEditForm({ ...editForm, [field]: e.target.value })}
+                                  onKeyDown={e => e.key === "Enter" && handleUpdate(a.id)}
                                 />
                               </td>
                             ))}
-                            <td style={S.td}>
-                              <div style={S.actions}>
-                                <button style={S.btnAccent} onClick={() => handleUpdate(a.id)}>Save</button>
-                                <button className="att-btn-secondary" style={S.btnSecondary} onClick={() => setEditingId(null)}>Cancel</button>
+                            <td style={{ ...td, paddingTop: "10px", paddingBottom: "10px" }}>
+                              <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end", alignItems: "center" }}>
+                                <button className="att-btn-save" onClick={() => handleUpdate(a.id)}>Save</button>
+                                <button className="att-btn-cancel" onClick={() => setEditingId(null)}>Cancel</button>
                               </div>
                             </td>
                           </>
                         ) : (
+                          /* ── View mode ── */
                           <>
-                            <td style={{ ...S.td, ...S.tdName }}>{a.name}</td>
-                            <td style={S.td}>{a.email || <Dash />}</td>
-                            <td style={S.td}>{a.role || <Dash />}</td>
-                            <td style={S.td}>
+                            <td style={{ ...td, fontWeight: "600", color: "#1a2e22" }}>{a.name}</td>
+                            <td style={td}>{a.email || <Dash />}</td>
+                            <td style={td}>{a.role || <Dash />}</td>
+                            <td style={td}>
                               {(a.aliases || []).length > 0
-                                ? a.aliases.map((alias, i) => <span key={i} style={S.aliasTag}>{alias}</span>)
+                                ? a.aliases.map((alias, i) => (
+                                    <span key={i} className="att-alias-tag">{alias}</span>
+                                  ))
                                 : <Dash />}
                             </td>
-                            <td style={S.td}>
-                              <div style={S.actions}>
-                                <button className="att-btn-secondary" style={S.btnSecondary} onClick={() => handleEdit(a)}>Edit</button>
-                                <button className="att-btn-danger" style={S.btnDanger} onClick={() => handleDelete(a.id)} title="Delete">✕</button>
+                            <td style={td}>
+                              <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end", alignItems: "center" }}>
+                                <button className="att-btn-edit" onClick={() => handleEdit(a)}>Edit</button>
+                                <button className="att-btn-delete" onClick={() => handleDelete(a.id)} title="Delete">✕</button>
                               </div>
                             </td>
                           </>
                         )}
+
                       </tr>
                     ))}
                   </tbody>

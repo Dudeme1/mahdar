@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import supabase from "../supabase";
 import MahdarScreen from "./MahdarScreen";
+import logoUrl from "/icon-512.png";
 
 const css = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
+
   @keyframes up-pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.6; transform: scale(1.08); }
@@ -10,8 +13,9 @@ const css = `
   @keyframes up-spin {
     to { transform: rotate(360deg); }
   }
+
   .up-spinner {
-    width: 14px; height: 14px;
+    width: 13px; height: 13px;
     border: 2px solid rgba(255,255,255,0.3);
     border-top-color: #fff;
     border-radius: 50%;
@@ -27,273 +31,83 @@ const css = `
     margin-right: 6px;
     vertical-align: middle;
   }
+
+  /* Tab buttons */
   .up-tab-btn {
     flex: 1;
     padding: 8px 0;
     font-size: 13px;
     font-weight: 500;
-    font-family: inherit;
+    font-family: 'DM Sans', system-ui, sans-serif;
     border: none;
     background: transparent;
     cursor: pointer;
     color: #9ca3af;
     border-radius: 8px;
     transition: all 0.15s;
+    letter-spacing: 0.01em;
   }
   .up-tab-btn.active {
     background: #fff;
-    color: #08060d;
+    color: #1a2e22;
     font-weight: 600;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: 0 1px 4px rgba(26,46,34,0.1);
   }
-  .up-tab-btn:hover:not(.active) { color: #6b6375; }
+  .up-tab-btn:hover:not(.active) { color: #1a2e22; }
 
-  .up-textarea:focus { border-color: rgba(170,59,255,0.5) !important; }
-  .up-select:focus { border-color: rgba(170,59,255,0.5) !important; outline: none; }
-  .up-file-zone { transition: border-color 0.15s, background 0.15s; }
-  .up-file-zone:hover { border-color: rgba(170,59,255,0.4) !important; background: rgba(170,59,255,0.03) !important; }
-  .up-btn-secondary:hover { background: #f7f7f8 !important; }
-  .up-sign-out:hover { background: #f7f7f8 !important; }
+  /* Inputs */
+  .up-textarea { transition: border-color 0.15s; }
+  .up-textarea:focus { border-color: rgba(195,152,83,0.6) !important; outline: none; box-shadow: 0 0 0 3px rgba(195,152,83,0.08); }
+  .up-select:focus { border-color: rgba(195,152,83,0.6) !important; outline: none; box-shadow: 0 0 0 3px rgba(195,152,83,0.08); }
+
+  /* File zone */
+  .up-file-zone {
+    transition: border-color 0.15s, background 0.15s;
+    cursor: pointer;
+  }
+  .up-file-zone:hover {
+    border-color: rgba(195,152,83,0.5) !important;
+    background: rgba(195,152,83,0.03) !important;
+  }
+
+  /* Buttons */
+  .up-btn-primary:hover:not(:disabled) { opacity: 0.88; }
+  .up-btn-secondary:hover { background: #f4f5f2 !important; }
+  .up-btn-record:hover { opacity: 0.88; }
+  .up-btn-record-stop:hover { background: #fee2e2 !important; }
+
+  /* Select */
+  .up-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a7585' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px !important;
+  }
+
+  /* Captured badge */
+  .up-captured-badge {
+    font-size: 12px;
+    color: #a07830;
+    background: rgba(195,152,83,0.1);
+    padding: 3px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(195,152,83,0.3);
+    font-weight: 500;
+  }
+
+  /* Section label */
+  .up-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #b0adb5;
+    margin-bottom: 12px;
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
 `;
 
-const S = {
-  page: {
-    minHeight: "100vh",
-    background: "#f7f7f8",
-    padding: "16px 20px",
-    fontFamily: "Inter, system-ui, 'Segoe UI', sans-serif",
-    color: "#6b6375",
-    boxSizing: "border-box",
-  },
-  container: { maxWidth: "820px", margin: "0 auto" },
-
-  topBar: { display: "flex", justifyContent: "flex-end", marginBottom: "16px" },
-  signOut: {
-    border: "1px solid #e5e4e7",
-    background: "#fff",
-    padding: "8px 14px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: "500",
-    fontSize: "13px",
-    color: "#08060d",
-    fontFamily: "inherit",
-  },
-
-  hero: { marginBottom: "20px", textAlign: "center" },
-  heroTitle: {
-    fontSize: "30px",
-    fontWeight: "700",
-    color: "#08060d",
-    letterSpacing: "-0.8px",
-    margin: "0 0 6px",
-  },
-  heroSub: {
-    fontSize: "14px",
-    color: "#9ca3a8",
-    lineHeight: "1.5",
-    margin: 0,
-  },
-
-  card: {
-    background: "#fff",
-    border: "1px solid #e5e4e7",
-    borderRadius: "18px",
-    padding: "20px",
-    boxShadow: "rgba(0,0,0,0.08) 0 8px 20px -4px, rgba(0,0,0,0.04) 0 4px 6px -2px",
-    marginBottom: "16px",
-  },
-
-  // ── Tab switcher ──
-  tabBar: {
-    display: "flex",
-    background: "#f4f3f6",
-    borderRadius: "10px",
-    padding: "3px",
-    marginBottom: "16px",
-    gap: "2px",
-  },
-
-  // ── Textarea ──
-  textarea: {
-    width: "100%",
-    minHeight: "130px",
-    padding: "14px",
-    borderRadius: "12px",
-    border: "1px solid #e5e4e7",
-    background: "#fafafa",
-    fontSize: "14px",
-    resize: "vertical",
-    outline: "none",
-    boxSizing: "border-box",
-    lineHeight: "1.6",
-    color: "#08060d",
-    fontFamily: "inherit",
-    transition: "border-color 0.15s",
-  },
-
-  // ── File zone ──
-  fileZone: {
-    border: "1.5px dashed #e5e4e7",
-    borderRadius: "12px",
-    padding: "20px",
-    background: "#fafafa",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "6px",
-    cursor: "pointer",
-    textAlign: "center",
-  },
-  fileZoneIcon: { fontSize: "22px", marginBottom: "2px" },
-  fileZoneLabel: { fontSize: "13px", fontWeight: "600", color: "#08060d" },
-  fileZoneHint: { fontSize: "12px", color: "#b0adb5" },
-  fileZoneSelected: {
-    fontSize: "12px",
-    color: "#aa3bff",
-    fontWeight: "500",
-    marginTop: "4px",
-    background: "rgba(170,59,255,0.07)",
-    padding: "3px 10px",
-    borderRadius: "20px",
-    border: "1px solid rgba(170,59,255,0.2)",
-  },
-
-  // ── Record UI ──
-  recordArea: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    padding: "28px 20px",
-    gap: "12px",
-  },
-  recordHint: { fontSize: "13px", color: "#9ca3a8" },
-
-  // ── Divider ──
-  divider: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    margin: "16px 0",
-  },
-  dividerLine: { flex: 1, height: "1px", background: "#f0eff2" },
-  dividerText: { fontSize: "11px", color: "#c4bfca", fontWeight: "500", textTransform: "uppercase", letterSpacing: "0.06em" },
-
-  // ── Controls row ──
-  controls: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "10px",
-    marginTop: "16px",
-    alignItems: "center",
-  },
-
-  // ── Buttons ──
-  btnPrimary: {
-    background: "#111827",
-    color: "#fff",
-    border: "none",
-    borderRadius: "10px",
-    padding: "10px 18px",
-    fontSize: "13px",
-    fontWeight: "600",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    display: "flex",
-    alignItems: "center",
-    gap: "7px",
-    transition: "opacity 0.15s",
-  },
-  btnSecondary: {
-    background: "#fff",
-    color: "#08060d",
-    border: "1px solid #e5e4e7",
-    borderRadius: "10px",
-    padding: "9px 14px",
-    fontSize: "13px",
-    fontWeight: "500",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  },
-  btnDanger: {
-    background: "#fef2f2",
-    color: "#dc2626",
-    border: "1px solid #fecaca",
-    borderRadius: "10px",
-    padding: "9px 14px",
-    fontSize: "13px",
-    fontWeight: "500",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  },
-  btnRecord: {
-    background: "#111827",
-    color: "#fff",
-    border: "none",
-    borderRadius: "50px",
-    padding: "12px 24px",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  btnRecordStop: {
-    background: "#fef2f2",
-    color: "#dc2626",
-    border: "1px solid #fecaca",
-    borderRadius: "50px",
-    padding: "12px 24px",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-
-  // ── Select ──
-  select: {
-    padding: "9px 12px",
-    borderRadius: "10px",
-    border: "1px solid #e5e4e7",
-    background: "#fff",
-    fontSize: "13px",
-    color: "#08060d",
-    fontFamily: "inherit",
-    marginLeft: "auto",
-    transition: "border-color 0.15s",
-  },
-
-  // ── Template card ──
-  templateCard: {
-    background: "#fff",
-    border: "1px solid #e5e4e7",
-    borderRadius: "18px",
-    padding: "20px",
-    boxShadow: "rgba(0,0,0,0.06) 0 4px 12px -2px",
-    marginBottom: "16px",
-  },
-  sectionLabel: {
-    fontSize: "11px",
-    fontWeight: "600",
-    letterSpacing: "0.07em",
-    textTransform: "uppercase",
-    color: "#b0adb5",
-    marginBottom: "12px",
-  },
-};
-
-// Tab IDs
 const TABS = { type: "type", record: "record", upload: "upload" };
 
 function UploadScreen() {
@@ -327,22 +141,13 @@ function UploadScreen() {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/get-templates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token })
+        body: JSON.stringify({ token }),
       });
       const data = await response.json();
       setSavedTemplates(data.templates || []);
     };
     fetchTemplates();
   }, [token]);
-
-  const getTemplateFile = async () => {
-    if (!selectedTemplateUrl) return null;
-    const response = await fetch(selectedTemplateUrl);
-    const blob = await response.blob();
-    return new File([blob], "template.docx", { 
-      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
-    });
-  };
 
   const handleSignout = async () => { await supabase.auth.signOut(); };
 
@@ -391,33 +196,84 @@ function UploadScreen() {
   };
 
   const tabConfig = [
-    { id: TABS.type, label: "✏️  Type notes" },
+    { id: TABS.type,   label: "✏️  Type notes" },
     { id: TABS.record, label: "🎙️  Record audio" },
     { id: TABS.upload, label: "📎  Upload audio" },
   ];
 
+  // ── Shared style tokens ──
+  const card = {
+    background: "#fff",
+    border: "1px solid #e8e7ea",
+    borderRadius: "16px",
+    padding: "20px",
+    boxShadow: "rgba(26,46,34,0.06) 0 8px 24px -4px, rgba(0,0,0,0.03) 0 2px 6px -1px",
+    marginBottom: "14px",
+  };
+
+  const fileZoneBase = {
+    border: "1.5px dashed #e2e0e5",
+    borderRadius: "12px",
+    padding: "20px",
+    background: "#fafaf9",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "5px",
+    textAlign: "center",
+  };
+
+  const divider = {
+    display: "flex", alignItems: "center", gap: "10px", margin: "16px 0",
+  };
+
   return (
     <>
       <style>{css}</style>
-      <div style={S.page}>
-        <div style={S.container}>
+      <div style={{
+        minHeight: "100vh",
+        background: "#f4f5f2",
+        padding: "28px 20px 48px",
+        fontFamily: "'DM Sans', system-ui, 'Segoe UI', sans-serif",
+        color: "#7a7585",
+        boxSizing: "border-box",
+      }}>
+        <div style={{ maxWidth: "760px", margin: "0 auto" }}>
 
-          {/* Top bar */}
-          <div style={S.topBar}>
-            <button className="up-sign-out" style={S.signOut} onClick={handleSignout}>Sign out</button>
+          {/* ── Hero ── */}
+          <div style={{ textAlign: "center", marginBottom: "28px" }}>
+            <img
+              src={logoUrl}
+              alt="Mahdari"
+              style={{ width: "52px", height: "52px", borderRadius: "14px", marginBottom: "14px", display: "block", margin: "0 auto 14px" }}
+            />
+            <h1 style={{
+              fontFamily: "'DM Serif Display', serif",
+              fontSize: "28px",
+              fontWeight: "400",
+              color: "#1a2e22",
+              letterSpacing: "-0.5px",
+              margin: "0 0 8px",
+            }}>
+              New Mah<span style={{ color: "#c39853" }}>dar</span>
+            </h1>
+            <p style={{ fontSize: "14px", color: "#a09aaa", lineHeight: "1.6", margin: 0 }}>
+              Upload, record, or type your meeting notes and instantly generate a clean MoM report.
+            </p>
           </div>
 
-          {/* Hero */}
-          <div style={S.hero}>
-            <h1 style={S.heroTitle}>Mahdar 🎙️</h1>
-            <p style={S.heroSub}>Upload, record, or type your meeting notes and instantly generate a clean MoM report.</p>
-          </div>
-
-          {/* Main card */}
-          <div style={S.card}>
+          {/* ── Main input card ── */}
+          <div style={card}>
 
             {/* Tab switcher */}
-            <div style={S.tabBar}>
+            <div style={{
+              display: "flex",
+              background: "#f2f1f4",
+              borderRadius: "10px",
+              padding: "3px",
+              marginBottom: "18px",
+              gap: "2px",
+            }}>
               {tabConfig.map(t => (
                 <button
                   key={t.id}
@@ -429,125 +285,216 @@ function UploadScreen() {
               ))}
             </div>
 
-            {/* ── Tab: Type ── */}
+            {/* ── Type tab ── */}
             {activeTab === TABS.type && (
               <textarea
                 className="up-textarea"
-                style={S.textarea}
                 value={textInput}
                 onChange={e => setTextInput(e.target.value)}
                 placeholder="Paste or type your meeting notes here…"
+                style={{
+                  width: "100%",
+                  minHeight: "140px",
+                  padding: "14px",
+                  borderRadius: "11px",
+                  border: "1px solid #e2e0e5",
+                  background: "#fafaf9",
+                  fontSize: "14px",
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                  lineHeight: "1.65",
+                  color: "#1a2e22",
+                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                }}
               />
             )}
 
-            {/* ── Tab: Record ── */}
+            {/* ── Record tab ── */}
             {activeTab === TABS.record && (
-              <div style={S.recordArea}>
-                <div style={S.recordHint}>
+              <div style={{
+                display: "flex", flexDirection: "column", alignItems: "center",
+                padding: "32px 20px", gap: "14px",
+              }}>
+                <p style={{ fontSize: "13px", color: "#a09aaa", margin: 0, textAlign: "center" }}>
                   {recording
                     ? "Recording in progress — click stop when done"
-                    : file && file.name === "recording.webm"
+                    : file?.name === "recording.webm"
                       ? "Recording saved — ready to generate"
                       : "Tap to start recording your meeting audio"}
-                </div>
+                </p>
+
                 {recording ? (
-                  <button style={S.btnRecordStop} onClick={stopRecording}>
+                  <button
+                    className="up-btn-record-stop"
+                    onClick={stopRecording}
+                    style={{
+                      background: "#fef2f2", color: "#dc2626",
+                      border: "1px solid #fecaca", borderRadius: "50px",
+                      padding: "12px 26px", fontSize: "13px", fontWeight: "600",
+                      cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif",
+                      display: "flex", alignItems: "center", gap: "8px",
+                    }}
+                  >
                     <span className="up-rec-dot" />
                     Stop recording
                   </button>
                 ) : (
-                  <button style={S.btnRecord} onClick={startRecording}>
+                  <button
+                    className="up-btn-record"
+                    onClick={startRecording}
+                    style={{
+                      background: "#1a2e22", color: "#fff",
+                      border: "none", borderRadius: "50px",
+                      padding: "12px 26px", fontSize: "13px", fontWeight: "600",
+                      cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif",
+                      display: "flex", alignItems: "center", gap: "8px",
+                    }}
+                  >
                     🎙️ Start recording
                   </button>
                 )}
-                {file && file.name === "recording.webm" && !recording && (
-                  <div style={{ fontSize: "12px", color: "#aa3bff", background: "rgba(170,59,255,0.07)", padding: "4px 12px", borderRadius: "20px", border: "1px solid rgba(170,59,255,0.2)", fontWeight: 500 }}>
-                    ✓ Audio captured
-                  </div>
+
+                {file?.name === "recording.webm" && !recording && (
+                  <span className="up-captured-badge">✓ Audio captured</span>
                 )}
               </div>
             )}
 
-            {/* ── Tab: Upload ── */}
+            {/* ── Upload tab ── */}
             {activeTab === TABS.upload && (
               <>
                 <input ref={audioFileRef} type="file" accept="audio/*" style={{ display: "none" }}
                   onChange={e => setFile(e.target.files[0])} />
-                <div className="up-file-zone" style={S.fileZone} onClick={() => audioFileRef.current?.click()}>
-                  <div style={S.fileZoneIcon}>🎵</div>
-                  <div style={S.fileZoneLabel}>Click to upload audio file</div>
-                  <div style={S.fileZoneHint}>MP3, WAV, WEBM, M4A supported</div>
-                  {file && <div style={S.fileZoneSelected}>✓ {file.name}</div>}
+                <div className="up-file-zone" style={fileZoneBase} onClick={() => audioFileRef.current?.click()}>
+                  <span style={{ fontSize: "22px" }}>🎵</span>
+                  <div style={{ fontSize: "13px", fontWeight: "600", color: "#1a2e22", marginTop: "2px" }}>
+                    Click to upload audio file
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#b0adb5" }}>MP3, WAV, WEBM, M4A supported</div>
+                  {file && (
+                    <span className="up-captured-badge" style={{ marginTop: "4px" }}>✓ {file.name}</span>
+                  )}
                 </div>
               </>
             )}
 
             {/* Divider */}
-            <div style={S.divider}>
-              <div style={S.dividerLine} />
-              <div style={S.dividerText}>Options</div>
-              <div style={S.dividerLine} />
+            <div style={divider}>
+              <div style={{ flex: 1, height: "1px", background: "#eeecf0" }} />
+              <span style={{ fontSize: "10.5px", color: "#c4bfca", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Options
+              </span>
+              <div style={{ flex: 1, height: "1px", background: "#eeecf0" }} />
             </div>
 
             {/* Controls */}
-            <div style={S.controls}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
               <button
+                className="up-btn-primary"
                 onClick={processAudio}
                 disabled={loading}
-                style={{ ...S.btnPrimary, opacity: loading ? 0.75 : 1 }}
+                style={{
+                  background: "#1a2e22",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "10px",
+                  padding: "10px 18px",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  opacity: loading ? 0.72 : 1,
+                  transition: "opacity 0.15s",
+                }}
               >
-                {loading ? <><span className="up-spinner" /> Generating…</> : <>✨ Generate Mahdar</>}
+                {loading
+                  ? <><span className="up-spinner" /> Generating…</>
+                  : <>✨ Generate Mahdar</>}
               </button>
 
-              <select className="up-select" style={S.select} value={language} onChange={e => setLanguage(e.target.value)}>
+              <select
+                className="up-select"
+                value={language}
+                onChange={e => setLanguage(e.target.value)}
+                style={{
+                  padding: "9px 30px 9px 12px",
+                  borderRadius: "10px",
+                  border: "1px solid #e2e0e5",
+                  background: "#fff",
+                  fontSize: "13px",
+                  color: "#1a2e22",
+                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                  marginLeft: "auto",
+                  cursor: "pointer",
+                  transition: "border-color 0.15s",
+                }}
+              >
                 <option value="english">English</option>
                 <option value="arabic">Arabic</option>
               </select>
             </div>
           </div>
 
-          {/* Template upload */}
-          <div style={S.templateCard}>
-            <div style={S.sectionLabel}>Word template (optional)</div>
+          {/* ── Template card ── */}
+          <div style={{ ...card, padding: "18px 20px" }}>
+            <div className="up-section-label">Word template (optional)</div>
             <input ref={templateFileRef} type="file" accept=".docx" style={{ display: "none" }}
               onChange={e => setTemplate(e.target.files[0])} />
-            <div className="up-file-zone" style={{ ...S.fileZone, padding: "14px 20px" }} onClick={() => templateFileRef.current?.click()}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontSize: "18px" }}>📄</span>
-                <div style={{ textAlign: "left" }}>
-                  <div style={S.fileZoneLabel}>Upload .docx template</div>
-                  <div style={S.fileZoneHint}>Your MoM will follow this document's structure</div>
+
+            <div
+              className="up-file-zone"
+              style={{ ...fileZoneBase, flexDirection: "row", padding: "14px 16px", gap: "12px", textAlign: "left" }}
+              onClick={() => templateFileRef.current?.click()}
+            >
+              <span style={{ fontSize: "20px", flexShrink: 0 }}>📄</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "#1a2e22" }}>Upload .docx template</div>
+                <div style={{ fontSize: "12px", color: "#b0adb5", marginTop: "2px" }}>
+                  Your MoM will follow this document's structure
                 </div>
-                {template && <div style={{ ...S.fileZoneSelected, marginLeft: "auto" }}>✓ {template.name}</div>}
               </div>
+              {template && (
+                <span className="up-captured-badge" style={{ flexShrink: 0 }}>✓ {template.name}</span>
+              )}
             </div>
 
-            {/* Saved templates dropdown — now inside the card */}
             {savedTemplates.length > 0 && (
               <>
-                <div style={{ ...S.divider, margin: "12px 0" }}>
-                  <div style={S.dividerLine} />
-                  <div style={S.dividerText}>or choose saved</div>
-                  <div style={S.dividerLine} />
+                <div style={{ ...divider, margin: "14px 0" }}>
+                  <div style={{ flex: 1, height: "1px", background: "#eeecf0" }} />
+                  <span style={{ fontSize: "10.5px", color: "#c4bfca", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    or choose saved
+                  </span>
+                  <div style={{ flex: 1, height: "1px", background: "#eeecf0" }} />
                 </div>
                 <select
                   className="up-select"
-                  style={{ ...S.select, width: "100%", marginLeft: 0 }}
-                  value={selectedTemplateUrl}
+                  value={selectedTemplateUrl || ""}
                   onChange={async (e) => {
                     const url = e.target.value;
                     setSelectedTemplateUrl(url);
-                    if (!url) {
-                      setTemplate(null);
-                      return;
-                    }
-                    // Immediately fetch and set the template file
+                    if (!url) { setTemplate(null); return; }
                     const response = await fetch(url);
                     const blob = await response.blob();
                     const fileName = url.split("/").pop()?.split("?")[0] || "template.docx";
                     setTemplate(new File([blob], fileName, {
-                      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     }));
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "9px 30px 9px 12px",
+                    borderRadius: "10px",
+                    border: "1px solid #e2e0e5",
+                    background: "#fff",
+                    fontSize: "13px",
+                    color: "#1a2e22",
+                    fontFamily: "'DM Sans', system-ui, sans-serif",
+                    cursor: "pointer",
+                    transition: "border-color 0.15s",
                   }}
                 >
                   <option value="">Select a saved template…</option>
@@ -559,7 +506,7 @@ function UploadScreen() {
             )}
           </div>
 
-          {/* Generated MoM */}
+          {/* ── Generated MoM ── */}
           {text && mom && (
             <MahdarScreen
               token={token}
