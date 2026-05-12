@@ -387,17 +387,17 @@ function UploadScreen() {
       <style>{css}</style>
       <div className="ms-root">
 
-        {/* Header */}
+        {/* Header
         <header className="ms-header">
           <div className="ms-logo-row">
             <img src={logoUrl} alt="Mahdari" className="ms-logo-img" />
             <span className="ms-logo-text">Mah<span>dari</span></span>
           </div>
           <button className="ms-signout" onClick={handleSignout}>Sign out</button>
-        </header>
+        </header> */}
 
         <div className="ms-body">
-          <h1 className="ms-title">New Mah<span>dar</span></h1>
+          <h1 className="ms-title">New  Mah<span>dar</span></h1>
           <p className="ms-sub">Generate a clean minutes-of-meeting from audio or notes.</p>
 
           {/* Main input panel */}
