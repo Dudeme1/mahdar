@@ -10,9 +10,9 @@ const css = `
   .mah-root {
     animation: mah-fadein 0.35s ease;
     font-family: 'DM Sans', system-ui, 'Segoe UI', sans-serif;
+    padding: 24px 24px 16px;
   }
 
-  /* Textarea */
   .mah-textarea {
     transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   }
@@ -23,7 +23,6 @@ const css = `
     box-shadow: 0 0 0 3px rgba(195,152,83,0.08);
   }
 
-  /* Copy button */
   .mah-copy-btn {
     position: absolute; top: 9px; right: 9px;
     border: 1px solid #e8e7ea;
@@ -41,7 +40,6 @@ const css = `
   .mah-copy-btn:hover { background: #ebe9ed; color: #1a2e22; }
   .mah-copy-btn.copied { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
 
-  /* Attendee card */
   .mah-attendee-card {
     transition: box-shadow 0.15s, border-color 0.15s;
   }
@@ -50,7 +48,6 @@ const css = `
     border-color: #d8d5dc;
   }
 
-  /* Override select */
   .mah-override-select {
     padding: 7px 10px;
     border-radius: 8px;
@@ -67,7 +64,6 @@ const css = `
   }
   .mah-override-select:focus { border-color: rgba(195,152,83,0.5); }
 
-  /* Remember button */
   .mah-remember-btn {
     padding: 7px 13px;
     border-radius: 8px;
@@ -88,29 +84,28 @@ const css = `
     border-color: #bbf7d0;
   }
 
-  /* Export button */
   .mah-export-btn {
     background: #1a2e22;
     color: #fff;
     border: none;
-    border-radius: 11px;
-    padding: 11px 22px;
+    border-radius: 10px;
+    padding: 10px 20px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     font-family: 'DM Sans', system-ui, sans-serif;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    transition: opacity 0.15s;
+    gap: 7px;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.01em;
   }
-  .mah-export-btn:hover { opacity: 0.86; }
+  .mah-export-btn:hover { opacity: 0.88; }
+  .mah-export-btn:active { transform: scale(0.98); }
 
-  /* Action rows */
   .mah-action-row { transition: background 0.12s; }
   .mah-action-row:hover { background: #faf9f7; }
 
-  /* Action inputs */
   .mah-action-input {
     width: 100%;
     padding: 7px 9px;
@@ -130,22 +125,14 @@ const css = `
     box-shadow: 0 0 0 3px rgba(195,152,83,0.07);
   }
   .mah-action-input::placeholder { color: #c4bfca; }
-
-  /* Section divider between cards */
-  .mah-divider {
-    height: 1px;
-    background: #f0eff2;
-    margin: 18px 0;
-  }
 `;
 
-// ── Shared tokens ──
 const card = {
   background: "#fff",
   border: "1px solid #e8e7ea",
-  borderRadius: "16px",
+  borderRadius: "14px",
   padding: "20px 22px",
-  boxShadow: "rgba(26,46,34,0.06) 0 8px 24px -4px, rgba(0,0,0,0.03) 0 2px 6px -1px",
+  boxShadow: "rgba(26,46,34,0.05) 0 4px 16px -4px",
   marginBottom: "14px",
 };
 
@@ -191,8 +178,6 @@ const textarea = {
   fontFamily: "'DM Sans', system-ui, sans-serif",
 };
 
-// ── Sub-components ──
-
 function CopyButton({ value }) {
   const [copied, setCopied] = useState(false);
   const handle = async () => {
@@ -234,7 +219,7 @@ function SectionHead({ icon, title }) {
 }
 
 function RememberButton({ onClick }) {
-  const [state, setState] = useState("idle"); // idle | saving | saved
+  const [state, setState] = useState("idle");
 
   const handle = async () => {
     setState("saving");
@@ -253,8 +238,6 @@ function RememberButton({ onClick }) {
     </button>
   );
 }
-
-// ── Main component ──
 
 function MahdarScreen({
   token, date, hijri_date, title, purpose, location,
@@ -358,10 +341,10 @@ function MahdarScreen({
     <>
       <style>{css}</style>
 
-      {/* ── Separator between upload form and MoM result ── */}
+      {/* ── Separator ── */}
       <div style={{
         display: "flex", alignItems: "center", gap: "12px",
-        margin: "28px 0 22px",
+        padding: "20px 24px 0",
       }}>
         <div style={{ flex: 1, height: "1px", background: "#e8e7ea" }} />
         <span style={{
@@ -378,16 +361,23 @@ function MahdarScreen({
 
         {/* ── Report header ── */}
         <div style={{
-          display: "flex", alignItems: "center",
+          display: "flex",
+          alignItems: "center",
           justifyContent: "space-between",
-          flexWrap: "wrap", gap: "12px",
-          marginBottom: "18px",
+          flexWrap: "wrap",
+          gap: "12px",
+          marginBottom: "20px",
+          paddingBottom: "18px",
+          borderBottom: "1px solid #f0eff2",
         }}>
           <div>
             <h2 style={{
               fontFamily: "'DM Serif Display', serif",
-              fontSize: "22px", fontWeight: "400",
-              color: "#1a2e22", letterSpacing: "-0.3px", margin: "0 0 3px",
+              fontSize: "21px",
+              fontWeight: "400",
+              color: "#1a2e22",
+              letterSpacing: "-0.3px",
+              margin: "0 0 3px",
             }}>
               MoM Report
             </h2>
@@ -442,7 +432,6 @@ function MahdarScreen({
                   <Field label="Role" value={attendee.role} onChange={v => updateAttendee(index, "role", v)} />
                 </div>
 
-                {/* Footer: override + remember */}
                 <div style={{
                   display: "flex", alignItems: "center", gap: "8px",
                   marginTop: "12px", paddingTop: "12px",
@@ -528,7 +517,12 @@ function MahdarScreen({
         </div>
 
         {/* ── Bottom export ── */}
-        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "4px", paddingBottom: "8px" }}>
+        <div style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          paddingTop: "8px",
+          paddingBottom: "4px",
+        }}>
           <button className="mah-export-btn" onClick={handleExport}>
             📄 Export to Word
           </button>

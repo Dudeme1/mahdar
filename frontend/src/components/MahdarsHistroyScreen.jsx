@@ -159,7 +159,7 @@ function MahdarsHistoryScreen() {
                         </thead>
                         <tbody>
                             {filtered.map(t => (
-                                <tr key={t.id} className="mh-row" onClick={() => navigate("/dashboard", { state: { mahdar: t.content } })}>
+                                <tr key={t.id} className="mh-row" onClick={() => navigate(`/mahdar/${t.id}`)}>
                                     <td style={{ padding: "13px 18px", borderBottom: "1px solid #f0eff2", verticalAlign: "middle" }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                                             <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "28px", height: "28px", borderRadius: "7px", background: "#f4f3f6", flexShrink: 0 }}>

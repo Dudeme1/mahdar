@@ -405,3 +405,16 @@ async def get_mahdars(request: TokenRequest):
     
     result = supabase.table("mahdars").select("*").eq("user_id", user.user.id).order("created_at", desc=True).execute()
     return {"mahdars": result.data}
+
+class GetMahdarRequest(BaseModel):
+    token: str
+    mahdar_id: int
+
+@app.post("/get-mahdar")
+async def get_mahdar(request: GetMahdarRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    
+    result = supabase.table("mahdars").select("*").eq("id", request.mahdar_id).eq("user_id", user.user.id).single().execute()
+    return {"mahdar": result.data}
