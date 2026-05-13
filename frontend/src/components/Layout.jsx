@@ -189,7 +189,13 @@ const css = `
     font-size: 17px;
     color: var(--topbar-logo-color);
     letter-spacing: -0.2px;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 4px 8px;
+    transition: background 0.14s;
+    text-decoration: none;
   }
+  .lay-topbar-logo:hover { background: rgba(0,0,0,0.04); }
   .lay-topbar-logo span { color: var(--topbar-logo-accent); }
 
   .lay-hamburger {
@@ -218,6 +224,30 @@ const css = `
     border-radius: 6px;
     object-fit: cover;
     flex-shrink: 0;
+  }
+
+  /* Logo button — clickable, highlighted on hover */
+  .lay-logo-btn {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    background: transparent;
+    border: none;
+    padding: 5px 7px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.14s;
+    min-width: 0;
+    flex: 1;
+    text-align: left;
+  }
+  .lay-logo-btn:hover {
+    background: rgba(0,0,0,0.04);
+  }
+  .lay-logo-btn.collapsed {
+    flex: unset;
+    padding: 5px;
+    justify-content: center;
   }
 
   .lay-section-label {
@@ -305,42 +335,41 @@ function Layout({ children, user }) {
           {/* ── Logo row ── */}
           <div style={{
             display: "flex",
-            flexDirection: "column",
-            gap: "12px",
+            alignItems: "center",
+            justifyContent: collapsed ? "center" : "space-between",
+            gap: "6px",
             padding: "4px 2px 18px",
             marginBottom: "2px",
           }}>
-            {/* Logo */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: collapsed ? "center" : "flex-start",
-              gap: "9px",
-            }}>
-              <img src={logoUrl} alt="Mahdari logo" className="lay-logo-img" />
-              {!collapsed && (
+            {/* Clickable logo — hidden when collapsed */}
+            {!collapsed && (
+              <button
+                className="lay-logo-btn"
+                onClick={() => handleNav("/dashboard")}
+                title="Go to Dashboard"
+              >
+                <img src={logoUrl} alt="Mahdari logo" className="lay-logo-img" />
                 <span style={{
                   fontFamily: "'DM Serif Display', serif",
                   fontSize: "16px",
                   fontWeight: "400",
                   color: "#1a2e22",
                   letterSpacing: "-0.2px",
+                  whiteSpace: "nowrap",
                 }}>
                   Mah<span style={{ color: "#c39853" }}>dari</span>
                 </span>
-              )}
-            </div>
-
-            {/* Toggle — always on its own row, never overlaps logo */}
-            <div style={{ display: "flex", justifyContent: collapsed ? "center" : "flex-end" }}>
-              <button
-                className={`lay-toggle-btn${collapsed ? " collapsed" : ""}`}
-                onClick={() => setCollapsed(c => !c)}
-                title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              >
-                ‹
               </button>
-            </div>
+            )}
+
+            {/* Toggle — centered alone when collapsed, right-aligned when expanded */}
+            <button
+              className={`lay-toggle-btn${collapsed ? " collapsed" : ""}`}
+              onClick={() => setCollapsed(c => !c)}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              ‹
+            </button>
           </div>
 
           {/* ── Nav items ── */}
@@ -405,10 +434,10 @@ function Layout({ children, user }) {
 
           {/* Mobile top bar */}
           <div className="lay-topbar">
-            <div className="lay-topbar-logo">
+            <button className="lay-topbar-logo" onClick={() => handleNav("/dashboard")}>
               <img src={logoUrl} alt="Mahdari" className="lay-logo-img-sm" />
               Mah<span>dari</span>
-            </div>
+            </button>
             <button className="lay-hamburger" onClick={() => setMobileOpen(o => !o)} aria-label="Open menu">
               <span /><span /><span />
             </button>
