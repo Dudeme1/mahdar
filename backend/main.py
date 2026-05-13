@@ -396,3 +396,12 @@ async def delete_template(request: DeleteTemplateRequest):
     supabase.table("templates").delete().eq("id", request.template_id).eq("user_id", user_id).execute()
     
     return {"message": "Template deleted!"}
+
+@app.post("/get-mahdars")
+async def get_mahdars(request: TokenRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    
+    result = supabase.table("mahdars").select("*").eq("user_id", user.user.id).order("created_at", desc=True).execute()
+    return {"mahdars": result.data}

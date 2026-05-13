@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import supabase from "../supabase";
-import logoUrl from "/icon-512.png"; // adjust path if needed
+import logoUrl from "/icon-512.png";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
 
   * { box-sizing: border-box; }
 
-  /* ── CSS Variables (light sidebar, green/gold accents) ── */
   :root {
     --sidebar-bg: #ffffff;
     --sidebar-border: #e8e7ea;
@@ -34,14 +33,12 @@ const css = `
     --email-color: #b0adb5;
   }
 
-  /* ── Sidebar transition ── */
   .lay-sidebar {
     transition: width 0.22s cubic-bezier(0.4,0,0.2,1),
                 padding 0.22s cubic-bezier(0.4,0,0.2,1);
     overflow: hidden;
   }
 
-  /* ── Nav buttons ── */
   .lay-nav-btn {
     display: flex;
     align-items: center;
@@ -62,7 +59,7 @@ const css = `
     letter-spacing: 0.01em;
   }
   .lay-nav-btn:hover {
-    background: rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.03);
     color: var(--sidebar-text-hover);
   }
   .lay-nav-btn.active {
@@ -76,14 +73,12 @@ const css = `
     padding: 9px;
   }
   .lay-nav-icon {
-    font-size: 15px;
     flex-shrink: 0;
-    opacity: 0.85;
+    opacity: 0.75;
   }
   .lay-nav-btn.active .lay-nav-icon { opacity: 1; }
   .lay-nav-label { transition: opacity 0.15s, width 0.15s; overflow: hidden; }
 
-  /* ── Collapse toggle button ── */
   .lay-toggle-btn {
     display: flex;
     align-items: center;
@@ -101,13 +96,12 @@ const css = `
   .lay-toggle-btn:hover { background: var(--toggle-hover); color: var(--sidebar-text-hover); }
   .lay-toggle-btn.collapsed { transform: rotate(180deg); }
 
-  /* ── Sign out ── */
   .lay-signout-btn {
     display: flex; align-items: center; gap: 8px;
     width: 100%; padding: 8px 12px;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(0,0,0,0.06);
     border-radius: 9px;
-    background: rgba(255,255,255,0.03);
+    background: transparent;
     color: var(--sidebar-text);
     font-family: 'DM Sans', system-ui, sans-serif;
     font-size: 12px; font-weight: 500;
@@ -122,7 +116,6 @@ const css = `
   }
   .lay-signout-btn.collapsed { justify-content: center; padding: 8px; }
 
-  /* ── Tooltip on collapsed items ── */
   .lay-nav-wrap { position: relative; }
   .lay-nav-wrap .lay-tooltip {
     display: none;
@@ -171,7 +164,6 @@ const css = `
     border-right-color: var(--tooltip-bg);
   }
 
-  /* ── Mobile overlay ── */
   .lay-overlay {
     display: none;
     position: fixed; inset: 0;
@@ -181,7 +173,6 @@ const css = `
   }
   .lay-overlay.open { display: block; }
 
-  /* ── Mobile top bar ── */
   .lay-topbar {
     display: none;
     align-items: center;
@@ -216,7 +207,6 @@ const css = `
   .lay-hamburger:hover { background: #ebe9ed; }
   .lay-hamburger span { display: block; height: 1.5px; background: #5a6b5e; border-radius: 2px; }
 
-  /* ── Logo image ── */
   .lay-logo-img {
     width: 28px; height: 28px;
     border-radius: 7px;
@@ -230,7 +220,6 @@ const css = `
     flex-shrink: 0;
   }
 
-  /* ── Section divider ── */
   .lay-section-label {
     font-size: 9.5px;
     font-weight: 600;
@@ -243,7 +232,6 @@ const css = `
     font-family: 'DM Sans', system-ui, sans-serif;
   }
 
-  /* ── Mobile breakpoint ── */
   @media (max-width: 768px) {
     .lay-sidebar {
       position: fixed !important;
@@ -268,9 +256,10 @@ const css = `
 `;
 
 const NAV_ITEMS = [
-  { label: "New Mahdar", icon: "🎙️", path: "/dashboard" },
-  { label: "Attendees",  icon: "👥", path: "/attendees" },
-  { label: "Templates",  icon: "📋", path: "/templates" },
+  { label: "New Mahdar", icon: "/newmahdar_icon.png",  path: "/dashboard" },
+  { label: "Attendees",  icon: "/attendees_icon.png",  path: "/attendees" },
+  { label: "Templates",  icon: "/templates_icon.png",  path: "/templates" },
+  { label: "History",    icon: "/history_icon.png",    path: "/history"   },
 ];
 
 function Layout({ children, user }) {
@@ -289,7 +278,6 @@ function Layout({ children, user }) {
     <>
       <style>{css}</style>
 
-      {/* Mobile overlay */}
       <div className={`lay-overlay${mobileOpen ? " open" : ""}`} onClick={() => setMobileOpen(false)} />
 
       <div style={{
@@ -313,17 +301,24 @@ function Layout({ children, user }) {
             gap: "2px",
           }}
         >
-          {/* Logo row */}
+
+          {/* ── Logo row ── */}
           <div style={{
             display: "flex",
-            alignItems: "center",
-            justifyContent: collapsed ? "center" : "space-between",
-            padding: collapsed ? "4px 0 18px" : "4px 2px 18px",
+            flexDirection: "column",
+            gap: "12px",
+            padding: "4px 2px 18px",
             marginBottom: "2px",
           }}>
-            {!collapsed && (
-              <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                <img src={logoUrl} alt="Mahdari logo" className="lay-logo-img" />
+            {/* Logo */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: collapsed ? "center" : "flex-start",
+              gap: "9px",
+            }}>
+              <img src={logoUrl} alt="Mahdari logo" className="lay-logo-img" />
+              {!collapsed && (
                 <span style={{
                   fontFamily: "'DM Serif Display', serif",
                   fontSize: "16px",
@@ -333,39 +328,24 @@ function Layout({ children, user }) {
                 }}>
                   Mah<span style={{ color: "#c39853" }}>dari</span>
                 </span>
-              </div>
-            )}
-            {collapsed && (
-              <img src={logoUrl} alt="Mahdari" className="lay-logo-img" />
-            )}
+              )}
+            </div>
 
-            {/* Desktop collapse toggle */}
-            {!collapsed && (
+            {/* Toggle — always on its own row, never overlaps logo */}
+            <div style={{ display: "flex", justifyContent: collapsed ? "center" : "flex-end" }}>
               <button
-                className="lay-toggle-btn"
+                className={`lay-toggle-btn${collapsed ? " collapsed" : ""}`}
                 onClick={() => setCollapsed(c => !c)}
-                title="Collapse sidebar"
+                title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
                 ‹
               </button>
-            )}
-            {collapsed && (
-              <button
-                className="lay-toggle-btn collapsed"
-                onClick={() => setCollapsed(c => !c)}
-                title="Expand sidebar"
-                style={{ marginTop: "10px" }}
-              >
-                ‹
-              </button>
-            )}
+            </div>
           </div>
 
-          {/* Nav items */}
+          {/* ── Nav items ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
-            {!collapsed && (
-              <div className="lay-section-label">Menu</div>
-            )}
+            {!collapsed && <div className="lay-section-label">Menu</div>}
 
             {NAV_ITEMS.map(({ label, icon, path }) => (
               <div key={path} className="lay-nav-wrap">
@@ -374,7 +354,12 @@ function Layout({ children, user }) {
                   onClick={() => handleNav(path)}
                   title={collapsed ? label : ""}
                 >
-                  <span className="lay-nav-icon">{icon}</span>
+                  <img
+                    src={icon}
+                    alt=""
+                    className="lay-nav-icon"
+                    style={{ width: "18px", height: "18px", objectFit: "contain", flexShrink: 0, opacity: 0.75 }}
+                  />
                   {!collapsed && <span className="lay-nav-label">{label}</span>}
                 </button>
                 <div className="lay-tooltip">{label}</div>
@@ -382,7 +367,7 @@ function Layout({ children, user }) {
             ))}
           </div>
 
-          {/* Footer */}
+          {/* ── Footer ── */}
           <div style={{
             borderTop: "1px solid var(--sidebar-footer-border)",
             paddingTop: "12px",
