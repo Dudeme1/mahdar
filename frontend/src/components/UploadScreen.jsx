@@ -104,7 +104,7 @@ const css = `
     margin-bottom: 1px;
   }
 
-  /* Tab bar — text-only, no box */
+  /* Tab bar */
   .ms-tabs {
     display: flex;
     border-bottom: 1px solid #e4e0d8;
@@ -160,6 +160,7 @@ const css = `
     align-items: center;
     gap: 16px;
     padding: 8px 0;
+    margin-bottom: 14px;
   }
   .ms-record-status {
     font-size: 13px;
@@ -186,6 +187,19 @@ const css = `
   .ms-record-start { background: #1c1c18; color: #fff; border-color: #1c1c18; }
   .ms-record-stop  { background: #fdf1f1; color: #c0392b; border-color: #f3c9c9; }
 
+  /* Transcript label */
+  .ms-transcript-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #b0a89e;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   /* Upload tab */
   .ms-upload-zone {
     border: 1px dashed #d5cfc5;
@@ -199,6 +213,42 @@ const css = `
   .ms-upload-zone:hover { border-color: #b07d3a; background: #fdf8f2; }
   .ms-upload-title { font-size: 13px; font-weight: 500; color: #3a3530; margin-bottom: 3px; }
   .ms-upload-hint  { font-size: 11.5px; color: #b0a89e; letter-spacing: 0.02em; }
+
+  /* File pill with remove */
+  .ms-file-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    background: #fdf3e0;
+    border: 1px solid #e8d5a8;
+    border-radius: 20px;
+    padding: 4px 10px 4px 12px;
+  }
+  .ms-file-pill-name {
+    font-size: 11px;
+    color: #8a6525;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ms-file-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #b07d3a;
+    padding: 0;
+    line-height: 1;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+  }
+  .ms-file-remove:hover { opacity: 1; }
 
   /* Bottom row of panel */
   .ms-panel-foot {
@@ -306,11 +356,15 @@ function UploadScreen() {
   const [text, setText] = useState("");
   const [textInput, setTextInput] = useState("");
   const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [recordingTranscript, setRecordingTranscript] = useState("");
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [mom, setMom] = useState(null);
   const [language, setLanguage] = useState("english");
   const [activeTab, setActiveTab] = useState(TABS.type);
+  const [limitReached, setLimitReached] = useState(false);
+  const [limitMessage, setLimitMessage] = useState("");
   const audioFileRef = useRef(null);
   const templateFileRef = useRef(null);
 
@@ -339,13 +393,28 @@ function UploadScreen() {
   const handleSignout = async () => { await supabase.auth.signOut(); };
 
   const startRecording = async () => {
+    setRecordingTranscript("");
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const recorder = new MediaRecorder(stream);
     const chunks = [];
     recorder.ondataavailable = (e) => chunks.push(e.data);
-    recorder.onstop = () => {
+    recorder.onstop = async () => {
       const blob = new Blob(chunks, { type: "audio/webm" });
-      setFile(new File([blob], "recording.webm", { type: "audio/webm" }));
+      const audioFile = new File([blob], "recording.webm", { type: "audio/webm" });
+      setFile(audioFile);
+
+      // Auto-transcribe after stopping
+      setTranscribing(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", audioFile);
+        const res = await fetch(`${API}/transcribe`, { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.transcript) setRecordingTranscript(data.transcript);
+      } catch (err) {
+        console.error("Transcription error:", err);
+      }
+      setTranscribing(false);
     };
     recorder.start();
     setMediaRecorder(recorder);
@@ -354,19 +423,45 @@ function UploadScreen() {
 
   const stopRecording = () => { mediaRecorder.stop(); setRecording(false); };
 
+  // Determine what input to use based on active tab, with fallback logic
+  const resolveInput = () => {
+    if (activeTab === TABS.type) {
+      // On type tab: use text if present, otherwise fall back to audio
+      if (textInput.trim()) return { type: "text", value: textInput };
+      if (file) return { type: "audio", value: file };
+      return null;
+    }
+    if (activeTab === TABS.record) {
+      // On record tab: prefer transcript text if available, else raw audio
+      if (recordingTranscript.trim()) return { type: "text", value: recordingTranscript };
+      if (file) return { type: "audio", value: file };
+      return null;
+    }
+    if (activeTab === TABS.upload) {
+      if (file) return { type: "audio", value: file };
+      return null;
+    }
+    return null;
+  };
+
   const processAudio = async () => {
-    if (!file && !textInput) return alert("Please provide audio or text!");
+    const input = resolveInput();
+    if (!input) return alert("Please provide audio or text!");
+
+    setMom(null);
+    setText("");
+
     setLoading(true);
     let transcript = "";
     try {
-      if (file && !textInput) {
+      if (input.type === "audio") {
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", input.value);
         const res = await fetch(`${API}/transcribe`, { method: "POST", body: formData });
         const data = await res.json();
         transcript = data.transcript;
       } else {
-        transcript = textInput;
+        transcript = input.value;
       }
       if (transcript) {
         const res = await fetch(`${API}/generate`, {
@@ -375,11 +470,35 @@ function UploadScreen() {
           body: JSON.stringify({ transcript, language, token }),
         });
         const gen_data = await res.json();
+
+        if (gen_data.error === "limit_reached") {
+          setLimitReached(true);
+          setLimitMessage(gen_data.message);
+          setLoading(false);
+          return;
+        }
+
         setText(JSON.stringify(gen_data));
         setMom(gen_data);
       }
     } catch (err) { console.error(err); }
     setLoading(false);
+  };
+
+  const removeFile = () => {
+    setFile(null);
+    setRecordingTranscript("");
+    if (audioFileRef.current) audioFileRef.current.value = "";
+  };
+
+  const handleSubscribe = async () => {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/subscribe`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ token })
+    });
+    const data = await response.json();
+    if (data.url) window.location.href = data.url;
   };
 
   return (
@@ -424,24 +543,53 @@ function UploadScreen() {
               )}
 
               {activeTab === TABS.record && (
-                <div className="ms-record-area">
-                  <span className="ms-record-status">
-                    {recording
-                      ? "Recording in progress…"
-                      : file?.name === "recording.webm"
-                        ? <span className="ms-badge">✓ Audio captured</span>
-                        : "Tap the button to start recording."}
-                  </span>
-                  {recording ? (
-                    <button className="ms-record-btn ms-record-stop" onClick={stopRecording}>
-                      <span className="ms-rec" /> Stop
-                    </button>
-                  ) : (
-                    <button className="ms-record-btn ms-record-start" onClick={startRecording}>
-                      ● Start recording
-                    </button>
+                <>
+                  <div className="ms-record-area">
+                    <span className="ms-record-status">
+                      {recording
+                        ? "Recording in progress…"
+                        : transcribing
+                          ? "Transcribing…"
+                          : file?.name === "recording.webm" && !recordingTranscript
+                            ? <span className="ms-badge">✓ Audio captured</span>
+                            : !file
+                              ? "Tap the button to start recording."
+                              : null}
+                    </span>
+                    {recording ? (
+                      <button className="ms-record-btn ms-record-stop" onClick={stopRecording}>
+                        <span className="ms-rec" /> Stop
+                      </button>
+                    ) : (
+                      <button className="ms-record-btn ms-record-start" onClick={startRecording}>
+                        ● {file ? "Re-record" : "Start recording"}
+                      </button>
+                    )}
+                    {file && !recording && (
+                      <button className="ms-file-remove" onClick={removeFile} title="Remove recording">
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Transcript area — shown after transcription */}
+                  {(transcribing || recordingTranscript) && (
+                    <div>
+                      <div className="ms-transcript-label">
+                        Transcript
+                        {transcribing && <span className="ms-spinner" style={{ borderTopColor: "#b07d3a", borderColor: "rgba(176,125,58,0.25)" }} />}
+                      </div>
+                      <textarea
+                        className="ms-input"
+                        value={transcribing ? "" : recordingTranscript}
+                        onChange={e => setRecordingTranscript(e.target.value)}
+                        placeholder={transcribing ? "Transcribing…" : ""}
+                        disabled={transcribing}
+                        style={{ minHeight: "100px" }}
+                      />
+                    </div>
                   )}
-                </div>
+                </>
               )}
 
               {activeTab === TABS.upload && (
@@ -452,9 +600,18 @@ function UploadScreen() {
                     <div className="ms-upload-title">Click to upload audio</div>
                     <div className="ms-upload-hint">MP3 · WAV · WEBM · M4A</div>
                     {file && (
-                      <span className="ms-badge" style={{ display: "inline-block", marginTop: "10px" }}>
-                        ✓ {file.name}
-                      </span>
+                      <div onClick={e => e.stopPropagation()}>
+                        <div className="ms-file-pill">
+                          <span className="ms-file-pill-name">✓ {file.name}</span>
+                          <button
+                            className="ms-file-remove"
+                            onClick={removeFile}
+                            title="Remove file"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </>
@@ -484,7 +641,7 @@ function UploadScreen() {
             </div>
           </div>
 
-          {/* Template row — compact, same visual weight as the panel */}
+          {/* Template row */}
           <div className="ms-template-row" style={{ marginTop: "8px" }}>
             <span className="ms-template-label">Template</span>
 
@@ -549,6 +706,12 @@ function UploadScreen() {
             </div>
           )}
         </div>
+        {limitReached && (
+          <div>
+            <p>{limitMessage}</p>
+            <button onClick={handleSubscribe}>⭐ Upgrade to Pro — $15/month</button>
+          </div>
+        )}
       </div>
     </>
   );

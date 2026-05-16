@@ -1,6 +1,6 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from dotenv import load_dotenv
 
 # Database
@@ -15,8 +15,13 @@ from pydantic import BaseModel
 # Fuzzy matching
 from rapidfuzz import fuzz, process
 
+# Dodo payments
+from dodopayments import DodoPayments
+
 import json
-from datetime import datetime
+from datetime import datetime, date
+from dateutil.relativedelta import relativedelta
+import time
 from hijri_converter import Gregorian
 from docxtpl import DocxTemplate
 import tempfile
@@ -34,6 +39,17 @@ claude = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 supabase = create_client(
     os.getenv("SUPABASE_URL"),
     os.getenv("SUPABASE_KEY")
+)
+
+PLAN_LIMITS = {
+    "free": 4,
+    "pro": 250
+}
+
+# Dodopayments initialization
+dodo = DodoPayments(
+    bearer_token=os.getenv("DODO_API_KEY"),
+    environment="live_mode"
 )
 
 def match_attendee(name: str, saved_attendees: list, threshold: int = 75):
@@ -64,6 +80,38 @@ def match_attendee(name: str, saved_attendees: list, threshold: int = 75):
         return candidates[matched_index][1]  # return the attendee object
     
     return None
+
+import time
+
+def call_claude_with_retry(claude, messages, model, max_tokens, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            return claude.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=messages
+            )
+        except Exception as e:
+            if attempt < max_retries - 1:
+                print(f"Claude API error, retrying... attempt {attempt + 1}")
+                time.sleep(2)  # wait 2 seconds before retry
+            else:
+                raise e
+
+def check_and_reset_if_needed(subscription):
+    last_reset = datetime.strptime(subscription["last_reset_date"], "%Y-%m-%d").date()
+    today = date.today()
+    
+    # Has a month passed since last reset?
+    if today >= last_reset + relativedelta(months=1):
+        # Reset the count!
+        supabase.table("subscriptions").update({
+            "mahdar_count_this_month": 0,
+            "last_reset_date": today.isoformat()
+        }).eq("user_id", subscription["user_id"]).execute()
+        subscription["mahdar_count_this_month"] = 0
+    
+    return subscription
 
 class TranscriptRequest(BaseModel):
     transcript: str
@@ -130,9 +178,39 @@ async def generate(request: TranscriptRequest):
         return {"error": "Not logged in!"}
     email = user.user.email
     user_id = user.user.id
+
+    # Check subscription and limits
+    sub_result = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
+    sub_data = sub_result.data if sub_result else None
+    if not sub_data:
+        # Auto-create free subscription if missing
+        supabase.table("subscriptions").insert({
+            "user_id": user_id,
+            "plan": "free",
+            "status": "active",
+            "mahdar_count_this_month": 0,
+            "last_reset_date": datetime.now().date().isoformat()
+        }).execute()
+    
+    # Re-fetch after creating
+    sub_result = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
+    
+    subscription = check_and_reset_if_needed(sub_result.data)
+    plan = subscription["plan"]
+    count = subscription["mahdar_count_this_month"]
+    limit = PLAN_LIMITS[plan]
+    
+    if count >= limit:
+        print("YOUVE REACHED YOUR LIMIT BRUV")
+        return {
+            "error": "limit_reached",
+            "message": f"You've used all {limit} mahdars this month! {'Upgrade to Pro for 250/month.' if plan == 'free' else 'Limit resets next month.'}"
+        }
+
     today = datetime.today()
     day_name = today.strftime("%A")
-    message = claude.messages.create(
+    message = call_claude_with_retry(
+        claude,
         model="claude-opus-4-6",
         max_tokens=2000,
         messages=[
@@ -167,6 +245,7 @@ async def generate(request: TranscriptRequest):
     clean = content.replace("```json", "").replace("```", "").strip()
     mom_data = json.loads(clean)
     print(mom_data)
+
     # Add Hijri Dates
     try:
         if mom_data.get("date"):
@@ -206,9 +285,14 @@ async def generate(request: TranscriptRequest):
     
     mom_data["attendees"] = enriched_attendees
 
+    # Increment mahdar count
+    supabase.table("subscriptions").update({
+        "mahdar_count_this_month": count + 1
+    }).eq("user_id", user_id).execute()
+
     # Save to supabase
     supabase.table("mahdars").insert({
-        "user_id": user.user.id,
+        "user_id": user_id,
         "title": mom_data.get("title", ""),
         "content": mom_data
     }).execute()
@@ -418,3 +502,79 @@ async def get_mahdar(request: GetMahdarRequest):
     
     result = supabase.table("mahdars").select("*").eq("id", request.mahdar_id).eq("user_id", user.user.id).single().execute()
     return {"mahdar": result.data}
+
+class SubscribeRequest(BaseModel):
+    token: str
+
+# Subscriptions
+@app.post("/create-subscription")
+async def create_subscription(request: TokenRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    
+    user_id = user.user.id
+    
+    # Check if subscription already exists
+    existing = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
+    
+    if not existing.data:
+        supabase.table("subscriptions").insert({
+            "user_id": user_id,
+            "plan": "free",
+            "status": "active",
+            "mahdar_count_this_month": 0,
+            "last_reset_date": datetime.now().date().isoformat()
+        }).execute()
+    
+    return {"message": "Subscription created!"}
+
+@app.post("/subscribe")
+async def subscribe(request: SubscribeRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    
+    email = user.user.email
+
+    session = dodo.checkout_sessions.create(
+        product_cart=[{
+            "product_id": os.getenv("DODO_PRODUCT_ID"),
+            "quantity": 1
+        }],
+        customer={"email": email, "name": email},
+        return_url="https://localhost:5173//dashboard",
+    )
+
+    return {"url": session.checkout_url}
+
+@app.post("/webhook")
+async def webhook(request: Request):
+    payload = await request.body()
+    headers = dict(request.headers)
+    
+    try:
+        event = dodo.webhooks.unwrap(
+            payload,
+            headers,
+            os.getenv("DODO_WEBHOOK_SECRET")
+        )
+        
+        if event.type == "subscription.active":
+            email = event.data.customer.email
+            user_result = supabase.table("users").select("*").eq("email", email).maybe_single().execute()
+            
+            if user_result.data:
+                user_id = user_result.data["user_id"]
+                # Update subscription to pro
+                supabase.table("subscriptions").update({
+                    "plan": "pro",
+                    "status": "active",
+                    "ends_at": (datetime.now() + relativedelta(months=1)).isoformat()
+                }).eq("user_id", user_id).execute()
+                print(f"Upgraded to Pro: {email}")
+            
+        return {"received": True}
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return JSONResponse(status_code=400, content={"error": str(e)})
