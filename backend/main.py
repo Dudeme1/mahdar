@@ -18,8 +18,14 @@ from rapidfuzz import fuzz, process
 # Dodo payments
 from dodopayments import DodoPayments
 
+# Templates
+import re
+import zipfile
+import mammoth, io
+import httpx
+
 import json
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 import time
 from hijri_converter import Gregorian
@@ -41,10 +47,73 @@ supabase = create_client(
     os.getenv("SUPABASE_KEY")
 )
 
+# Mahdar Variables
+KNOWN_VARIABLES = {
+    "title":              {"type": "scalar"},
+    "date":               {"type": "scalar"},
+    "hijri_date":         {"type": "scalar"},
+    "location":           {"type": "scalar"},
+    "purpose":            {"type": "scalar"},
+    "discussion":         {"type": "scalar"},
+    "decisions":          {"type": "scalar"},
+    "next_meeting":       {"type": "scalar"},
+    "hijri_next_meeting": {"type": "scalar"},
+    "attendees": {
+        "type": "loop",
+        "fields": ["name", "role", "email"],
+    },
+    "action_items": {
+        "type": "loop",
+        "fields": ["task", "owner", "deadline"],
+    },
+}
+
+# Plan / Subscription Variables (pro / free)
 PLAN_LIMITS = {
     "free": 4,
     "pro": 250
 }
+
+# Template Variables
+_PREVIEW_SCALARS = {
+    "title":              "Board Meeting – Q2 Review",
+    "location":           "Conference Room B",
+    "purpose":            "Quarterly progress review and planning",
+    "discussion":         "Team discussed Q2 milestones, budget allocation, and upcoming product launch.",
+    "decisions":          "Approved Q3 budget. Agreed to proceed with product launch on 1 July.",
+    "hijri_date":         "15/11/1446 هـ",
+    "hijri_next_meeting": "29/11/1446 هـ",
+}
+ 
+_PREVIEW_ATTENDEES = [
+    {"name": "Sarah Al-Rashid", "role": "Project Manager",  "email": "sarah@example.com"},
+    {"name": "Omar Khalid",     "role": "Lead Engineer",    "email": "omar@example.com"},
+    {"name": "Layla Mahmoud",   "role": "Product Designer", "email": "layla@example.com"},
+]
+ 
+_PREVIEW_ACTIONS = [
+    {"task": "Finalise Q3 roadmap",    "owner": "Sarah Al-Rashid", "deadline": "15 Jun 2025"},
+    {"task": "Complete API migration", "owner": "Omar Khalid",     "deadline": "30 Jun 2025"},
+]
+ 
+# Robust patterns — handle {%tr %}, {%- -%}, any loop variable name
+_PAT_FOR_ATTENDEES = re.compile(r'\{%-?\s*(?:tr\s+)?for\s+\w+\s+in\s+attendees\s*-?%\}')
+_PAT_FOR_ACTIONS   = re.compile(r'\{%-?\s*(?:tr\s+)?for\s+\w+\s+in\s+action_items\s*-?%\}')
+_PAT_ENDFOR        = re.compile(r'\{%-?\s*(?:tr\s+)?endfor\s*-?%\}')
+ 
+# Match any loop-variable prefix: item.name, attendee.name, row.name, etc.
+_PAT_FIELD = {
+    "name":     re.compile(r'\{\{\s*\w+\.name\s*\}\}'),
+    "role":     re.compile(r'\{\{\s*\w+\.role\s*\}\}'),
+    "email":    re.compile(r'\{\{\s*\w+\.email\s*\}\}'),
+    "task":     re.compile(r'\{\{\s*\w+\.task\s*\}\}'),
+    "owner":    re.compile(r'\{\{\s*\w+\.owner\s*\}\}'),
+    "deadline": re.compile(r'\{\{\s*\w+\.deadline\s*\}\}'),
+}
+ 
+_GREEN = '<mark class="pvg">{}</mark>'
+_RED   = '<mark class="pvr" title="Unrecognised variable">{}</mark>'
+_LOOP  = '<span class="pvl">[loop]</span>'
 
 # Dodopayments initialization
 dodo = DodoPayments(
@@ -112,6 +181,77 @@ def check_and_reset_if_needed(subscription):
         subscription["mahdar_count_this_month"] = 0
     
     return subscription
+
+def _build_preview_html(raw_bytes: bytes) -> str:
+    today = date.today()
+    scalars = {
+        **_PREVIEW_SCALARS,
+        "date":         today.strftime("%d %B %Y"),
+        "next_meeting": (today + timedelta(weeks=2)).strftime("%d %B %Y"),
+    }
+ 
+    html = mammoth.convert_to_html(io.BytesIO(raw_bytes)).value
+ 
+    # Step 1 — loop control tags first (before red catch-all fires)
+    html = _PAT_FOR_ATTENDEES.sub(_LOOP, html)
+    html = _PAT_FOR_ACTIONS.sub(_LOOP,   html)
+    html = _PAT_ENDFOR.sub(_LOOP,        html)
+ 
+    # Step 2 — loop field values (any variable prefix)
+    html = _PAT_FIELD["name"].sub(
+        _GREEN.format(", ".join(a["name"] for a in _PREVIEW_ATTENDEES)), html)
+    html = _PAT_FIELD["role"].sub(
+        _GREEN.format(", ".join(a["role"] for a in _PREVIEW_ATTENDEES)), html)
+    html = _PAT_FIELD["email"].sub(
+        _GREEN.format(", ".join(a["email"] for a in _PREVIEW_ATTENDEES)), html)
+    html = _PAT_FIELD["task"].sub(
+        _GREEN.format(" / ".join(a["task"] for a in _PREVIEW_ACTIONS)), html)
+    html = _PAT_FIELD["owner"].sub(
+        _GREEN.format(" / ".join(a["owner"] for a in _PREVIEW_ACTIONS)), html)
+    html = _PAT_FIELD["deadline"].sub(
+        _GREEN.format(" / ".join(a["deadline"] for a in _PREVIEW_ACTIONS)), html)
+ 
+    # Step 3 — scalar substitutions
+    for var, val in scalars.items():
+        html = re.sub(r'\{\{\s*' + re.escape(var) + r'\s*\}\}', _GREEN.format(val), html)
+ 
+    # Step 4 — anything remaining is truly unrecognised → red
+    html = re.sub(r'\{\{.*?\}\}', lambda m: _RED.format(m.group()), html)
+    html = re.sub(r'\{%.*?%\}',   lambda m: _RED.format(m.group()), html)
+ 
+    return f"""<!DOCTYPE html>
+            <html>
+            <head>
+            <meta charset="utf-8">
+            <style>
+            body {{
+                font-family: 'Segoe UI', Arial, sans-serif;
+                font-size: 13px; line-height: 1.75;
+                color: #1a1a1a; background: #fff;
+                padding: 28px 36px; margin: 0;
+            }}
+            p  {{ margin: 0 0 7px; }}
+            table {{ border-collapse: collapse; width: 100%; margin: 8px 0 14px; }}
+            td, th {{ border: 1px solid #ddd; padding: 6px 10px; font-size: 12px; }}
+            th {{ background: #f4f4f4; font-weight: 600; }}
+            strong {{ color: #1a2e22; }}
+            mark.pvg {{
+                background: #d1fae5; color: #065f46;
+                border-radius: 4px; padding: 1px 5px; font-weight: 600; font-style: normal;
+            }}
+            mark.pvr {{
+                background: #fee2e2; color: #991b1b;
+                border-radius: 4px; padding: 1px 5px; font-style: normal;
+            }}
+            span.pvl {{
+                font-size: 10px; color: #64748b;
+                background: #f1f5f9; border-radius: 3px;
+                padding: 1px 5px; font-style: italic;
+            }}
+            </style>
+            </head>
+            <body>{html}</body>
+            </html>"""
 
 class TranscriptRequest(BaseModel):
     transcript: str
@@ -459,6 +599,91 @@ class DeleteTemplateRequest(BaseModel):
     template_id: int
     file_path: str          # <-- accept file_path directly, not file_url
 
+@app.post("/scan-template")
+async def scan_template(file: UploadFile = File(...), token: str = Form("")):
+    user = supabase.auth.get_user(token)
+    if not user:
+        return {"error": "Not logged in!"}
+ 
+    file_bytes = await file.read()
+    try:
+        with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
+            doc_xml = z.read("word/document.xml").decode("utf-8", errors="replace")
+    except Exception as e:
+        return {"error": f"Could not read .docx: {str(e)}"}
+ 
+    plain = re.sub(r"<[^>]+>", "", doc_xml)
+ 
+    found, not_found = [], []
+ 
+    for var, meta in KNOWN_VARIABLES.items():
+        if meta["type"] == "scalar":
+            if re.search(r'\{\{\s*' + re.escape(var) + r'\s*\}\}', plain):
+                found.append(var)
+            else:
+                not_found.append(var)
+ 
+        elif meta["type"] == "loop":
+            # Match BOTH paragraph loop {{% for x in collection %}}
+            # AND docxtpl table-row loop {%tr for x in collection %}
+            loop_pat = re.compile(
+                r'\{%-?\s*(?:tr\s+)?for\s+\w+\s+in\s+' + re.escape(var) + r'\s*-?%\}'
+            )
+            if loop_pat.search(plain):
+                found.append(var)
+                for field in meta["fields"]:
+                    if not re.search(r'\{\{\s*\w+\.' + re.escape(field) + r'\s*\}\}', plain):
+                        not_found.append(field)
+            else:
+                not_found.append(var)
+ 
+    # Detect unrecognised {{ }} variables
+    all_doc_vars = re.findall(r'\{\{\s*([\w.]+)\s*\}\}', plain)
+    known_fields = {
+        f"{var}.{field}"
+        for var, meta in KNOWN_VARIABLES.items()
+        if meta["type"] == "loop"
+        for field in meta["fields"]
+    }
+    unknown_vars = [
+        v for v in set(all_doc_vars)
+        if v not in KNOWN_VARIABLES and v not in known_fields
+        # also exclude any x.field where field is known (handles arbitrary loop var names)
+        and not any(v.endswith("." + f) for meta in KNOWN_VARIABLES.values()
+                    for f in meta.get("fields", []))
+    ]
+ 
+    return {"found": found, "not_found": not_found, "unknown_vars": unknown_vars}
+ 
+
+@app.post("/preview-template")
+async def preview_template(file: UploadFile = File(...), token: str = Form("")):
+    user = supabase.auth.get_user(token)
+    if not user:
+        return {"error": "Not logged in!"}
+    raw = await file.read()
+    try:
+        return {"html": _build_preview_html(raw)}
+    except Exception as e:
+        return {"error": f"Preview failed: {str(e)}"}
+ 
+ 
+@app.post("/preview-template-by-url")
+async def preview_template_by_url(request: Request):
+    body  = await request.json()
+    token = body.get("token", "")
+    url   = body.get("url", "")
+    user  = supabase.auth.get_user(token)
+    if not user:
+        return {"error": "Not logged in!"}
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url)
+    if resp.status_code != 200:
+        return {"error": "Could not fetch template file."}
+    try:
+        return {"html": _build_preview_html(resp.content)}
+    except Exception as e:
+        return {"error": f"Preview failed: {str(e)}"}
 
 @app.post("/delete-template")
 async def delete_template(request: DeleteTemplateRequest):
@@ -480,6 +705,102 @@ async def delete_template(request: DeleteTemplateRequest):
     supabase.table("templates").delete().eq("id", request.template_id).eq("user_id", user_id).execute()
     
     return {"message": "Template deleted!"}
+
+@app.get("/starter-template")
+async def starter_template():
+    """Serves the pre-built starter .docx for users to download and customise."""
+    path = "mahdari_starter_template.docx"   # put the file next to main.py
+    if not os.path.exists(path):
+        return JSONResponse(status_code=404, content={"error": "Starter template not found on server."})
+    return FileResponse(
+        path,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename="mahdari_starter_template.docx"
+    )
+ 
+ 
+@app.post("/scan-template")
+async def scan_template(
+    file: UploadFile = File(...),
+    token: str = Form("")
+):
+    """
+    Reads a .docx upload and returns which known variables were found vs missing.
+    Called automatically by the frontend when the user picks a file — before upload.
+    """
+    user = supabase.auth.get_user(token)
+    if not user:
+        return {"error": "Not logged in!"}
+ 
+    file_bytes = await file.read()
+ 
+    # A .docx is a ZIP — pull the main document XML out of it
+    try:
+        with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
+            doc_xml = z.read("word/document.xml").decode("utf-8", errors="replace")
+    except Exception as e:
+        return {"error": f"Could not read .docx file: {str(e)}"}
+ 
+    # Strip all XML tags so we're searching plain text only
+    plain_text = re.sub(r"<[^>]+>", "", doc_xml)
+ 
+    found = []
+    missing = []
+ 
+    for var, meta in KNOWN_VARIABLES.items():
+        if meta["type"] == "scalar":
+            pattern = r"\{\{[\s]*" + re.escape(var) + r"[\s]*\}\}"
+            if re.search(pattern, plain_text):
+                found.append(var)
+            else:
+                missing.append(var)
+ 
+        elif meta["type"] == "loop":
+            loop_var = meta["loop_var"]
+            loop_pattern = (
+                r"\{%[\s]*for[\s]+" +
+                re.escape(loop_var) +
+                r"[\s]+in[\s]+" +
+                re.escape(var) +
+                r"[\s]*%\}"
+            )
+            if re.search(loop_pattern, plain_text):
+                found.append(var)
+                # Check sub-fields within the loop too
+                for field in meta["fields"]:
+                    field_pattern = r"\{\{[\s]*" + re.escape(field) + r"[\s]*\}\}"
+                    if not re.search(field_pattern, plain_text):
+                        missing.append(field)
+            else:
+                missing.append(var)
+ 
+    # Detect any {{ something }} the user wrote that we don't recognise
+    all_vars_in_doc = re.findall(r"\{\{[\s]*([\w.]+)[\s]*\}\}", plain_text)
+    known_fields = {
+        field
+        for meta in KNOWN_VARIABLES.values()
+        for field in meta.get("fields", [])
+    }
+    unknown_vars = [
+        v for v in set(all_vars_in_doc)
+        if v not in KNOWN_VARIABLES and v not in known_fields
+    ]
+ 
+    required_missing = [v for v in missing if KNOWN_VARIABLES.get(v, {}).get("required")]
+    optional_missing  = [v for v in missing if not KNOWN_VARIABLES.get(v, {}).get("required")]
+ 
+    return {
+        "is_valid":             len(required_missing) == 0,
+        "found":                found,
+        "required_missing":     required_missing,
+        "optional_missing":     optional_missing,
+        "unknown_vars":         unknown_vars,
+        "summary": {
+            "total_known":              len(KNOWN_VARIABLES),
+            "found_count":              len(found),
+            "required_missing_count":   len(required_missing),
+        }
+    }
 
 @app.post("/get-mahdars")
 async def get_mahdars(request: TokenRequest):
