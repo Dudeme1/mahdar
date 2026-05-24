@@ -304,7 +304,7 @@ async def transcribe(file: UploadFile = File (...)):
     audio_bytes = await file.read()
 
     transcript = openai.audio.transcriptions.create(
-        model="whisper-1",
+        model="gpt-4o-transcribe",
         file=(file.filename, audio_bytes, file.content_type)
     )
 
@@ -438,6 +438,126 @@ async def generate(request: TranscriptRequest):
     }).execute()
 
     return mom_data
+
+@app.post("/preview-mahdar")
+async def preview_mahdar(
+    template:          UploadFile = File(...),
+    token:             str        = Form(""),
+    date:              str        = Form(""),
+    hijri_date:        str        = Form(""),
+    title:             str        = Form(""),
+    location:          str        = Form(""),
+    purpose:           str        = Form(""),
+    discussion:        str        = Form(""),
+    decisions:         str        = Form(""),
+    next_meeting:      str        = Form(""),
+    hijri_next_meeting:str        = Form(""),
+    attendees:         str        = Form("[]"),   # JSON string
+    action_items:      str        = Form("[]"),   # JSON string
+):
+    """
+    Converts a .docx template to HTML preview with the REAL meeting data
+    substituted in (green highlights), not placeholders.
+    Unknown variables are shown in red.
+    """
+    user = supabase.auth.get_user(token)
+    if not user:
+        return {"error": "Not logged in!"}
+ 
+    raw = await template.read()
+ 
+    import json as _json
+    try:
+        attendees_list   = _json.loads(attendees)
+        action_items_list = _json.loads(action_items)
+    except Exception:
+        attendees_list   = []
+        action_items_list = []
+ 
+    real_scalars = {
+        "title":              title,
+        "date":               date,
+        "hijri_date":         hijri_date,
+        "location":           location,
+        "purpose":            purpose,
+        "discussion":         discussion,
+        "decisions":          decisions,
+        "next_meeting":       next_meeting,
+        "hijri_next_meeting": hijri_next_meeting,
+    }
+ 
+    _G = '<mark class="pvg">{}</mark>'
+    _R = '<mark class="pvr" title="Unrecognised variable">{}</mark>'
+    _L = '<span class="pvl">[loop]</span>'
+ 
+    # Reuse the robust loop patterns from the preview endpoint
+    _pat_for_attendees = re.compile(r'\{%-?\s*(?:tr\s+)?for\s+\w+\s+in\s+attendees\s*-?%\}')
+    _pat_for_actions   = re.compile(r'\{%-?\s*(?:tr\s+)?for\s+\w+\s+in\s+action_items\s*-?%\}')
+    _pat_endfor        = re.compile(r'\{%-?\s*(?:tr\s+)?endfor\s*-?%\}')
+ 
+    try:
+        html = mammoth.convert_to_html(io.BytesIO(raw)).value
+    except Exception as e:
+        return {"error": f"Could not convert template: {str(e)}"}
+ 
+    # Step 1 — loop control tags → dim label
+    html = _pat_for_attendees.sub(_L, html)
+    html = _pat_for_actions.sub(_L,   html)
+    html = _pat_endfor.sub(_L,        html)
+ 
+    # Step 2 — loop field values with real data
+    # Show comma-separated for attendees fields, slash-separated for action items
+    loop_map = {}
+    if attendees_list:
+        loop_map["name"]     = ", ".join(a.get("name","")     for a in attendees_list if a.get("name"))
+        loop_map["role"]     = ", ".join(a.get("role","")     for a in attendees_list if a.get("role"))
+        loop_map["email"]    = ", ".join(a.get("email","")    for a in attendees_list if a.get("email"))
+    if action_items_list:
+        loop_map["task"]     = " / ".join(i.get("task","")    for i in action_items_list if i.get("task"))
+        loop_map["owner"]    = " / ".join(i.get("owner","")   for i in action_items_list if i.get("owner"))
+        loop_map["deadline"] = " / ".join(i.get("deadline","")for i in action_items_list if i.get("deadline"))
+ 
+    for field, val in loop_map.items():
+        if val:
+            html = re.sub(
+                r'\{\{\s*\w+\.' + re.escape(field) + r'\s*\}\}',
+                _G.format(val),
+                html
+            )
+ 
+    # Step 3 — scalar replacements with real values
+    for var, val in real_scalars.items():
+        if val:
+            html = re.sub(
+                r'\{\{\s*' + re.escape(var) + r'\s*\}\}',
+                _G.format(val),
+                html
+            )
+ 
+    # Step 4 — remaining {{ }} and {% %} are unknown → red
+    html = re.sub(r'\{\{.*?\}\}', lambda m: _R.format(m.group()), html)
+    html = re.sub(r'\{%.*?%\}',   lambda m: _R.format(m.group()), html)
+ 
+    full_html = f"""<!DOCTYPE html>
+                    <html>
+                    <head>
+                    <meta charset="utf-8">
+                    <style>
+                    body {{ font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.75;color:#1a1a1a;background:#fff;padding:28px 36px;margin:0; }}
+                    p {{ margin:0 0 7px; }}
+                    table {{ border-collapse:collapse;width:100%;margin:8px 0 14px; }}
+                    td,th {{ border:1px solid #ddd;padding:6px 10px;font-size:12px; }}
+                    th {{ background:#f4f4f4;font-weight:600; }}
+                    strong {{ color:#1a2e22; }}
+                    mark.pvg {{ background:#d1fae5;color:#065f46;border-radius:4px;padding:1px 5px;font-weight:600;font-style:normal; }}
+                    mark.pvr {{ background:#fee2e2;color:#991b1b;border-radius:4px;padding:1px 5px;font-style:normal; }}
+                    span.pvl {{ font-size:10px;color:#64748b;background:#f1f5f9;border-radius:3px;padding:1px 5px;font-style:italic; }}
+                    </style>
+                    </head>
+                    <body>{html}</body>
+                    </html>"""
+ 
+    return {"html": full_html}
 
 @app.post("/export")
 async def export(
@@ -828,6 +948,32 @@ class SubscribeRequest(BaseModel):
     token: str
 
 # Subscriptions
+@app.post("/get-subscription")
+async def get_subscription(request: TokenRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+ 
+    user_id = user.user.id
+ 
+    result = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
+ 
+    if not result.data:
+        # Auto-create free subscription if somehow missing
+        supabase.table("subscriptions").insert({
+            "user_id": user_id,
+            "plan": "free",
+            "status": "active",
+            "mahdar_count_this_month": 0,
+            "last_reset_date": datetime.now().date().isoformat()
+        }).execute()
+        result = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
+ 
+    # Run the monthly reset check while we're here
+    subscription = check_and_reset_if_needed(result.data)
+ 
+    return {"subscription": subscription}
+
 @app.post("/create-subscription")
 async def create_subscription(request: TokenRequest):
     user = supabase.auth.get_user(request.token)
@@ -864,7 +1010,7 @@ async def subscribe(request: SubscribeRequest):
             "quantity": 1
         }],
         customer={"email": email, "name": email},
-        return_url="https://localhost:5173//dashboard",
+        return_url=os.getenv("VITE_APP_URL", "https://www.mahdari.com") + "/subscription",
     )
 
     return {"url": session.checkout_url}

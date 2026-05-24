@@ -292,6 +292,10 @@ const NAV_ITEMS = [
   { label: "History",    icon: "/history_icon.png",    path: "/history"   },
 ];
 
+const ACCOUNT_ITEMS = [
+  { label: "Subscription", icon: "/subscription_icon.png", path: "/subscription" },
+];
+
 function Layout({ children, user }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -377,6 +381,29 @@ function Layout({ children, user }) {
             {!collapsed && <div className="lay-section-label">Menu</div>}
 
             {NAV_ITEMS.map(({ label, icon, path }) => (
+              <div key={path} className="lay-nav-wrap">
+                <button
+                  className={`lay-nav-btn${location.pathname === path ? " active" : ""}${collapsed ? " collapsed" : ""}`}
+                  onClick={() => handleNav(path)}
+                  title={collapsed ? label : ""}
+                >
+                  <img
+                    src={icon}
+                    alt=""
+                    className="lay-nav-icon"
+                    style={{ width: "18px", height: "18px", objectFit: "contain", flexShrink: 0, opacity: 0.75 }}
+                  />
+                  {!collapsed && <span className="lay-nav-label">{label}</span>}
+                </button>
+                <div className="lay-tooltip">{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Account section ── */}
+          <div style={{ marginTop: "12px" }}>
+            {!collapsed && <div className="lay-section-label">Account</div>}
+            {ACCOUNT_ITEMS.map(({ label, icon, path }) => (
               <div key={path} className="lay-nav-wrap">
                 <button
                   className={`lay-nav-btn${location.pathname === path ? " active" : ""}${collapsed ? " collapsed" : ""}`}

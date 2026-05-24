@@ -8,6 +8,8 @@ import TemplatesScreen from "./components/TemplatesScreen";
 import Layout from "./components/Layout";
 import MahdarsHistoryScreen from "./components/MahdarsHistroyScreen";
 import ViewMahdarScreen from "./components/ViewMahdarScreen";
+import SubscriptionScreen from "./components/SubscriptionScreen";
+
 
 function App() {
   const [ user, setUser ] = useState(null);
@@ -56,6 +58,7 @@ function App() {
         <Route path="/attendees" element={user ? <Layout user={user}><AttendeesScreen user={user} /></Layout> : <Navigate to="/login" />} />
         <Route path="/templates" element={user ? <Layout user={user}><TemplatesScreen user={user} /></Layout> : <Navigate to="/login" />} />
         <Route path="/history" element={user ? <Layout user={user}><MahdarsHistoryScreen user={user} /></Layout> : <Navigate to="/login" />} />
+        <Route path="/subscription" element={user ? <Layout user={user}><SubscriptionScreen user={user} /></Layout> : <Navigate to="/login" />} />
         <Route path="/mahdar/:id" element={user ? <Layout><ViewMahdarScreen /></Layout> : <Navigate to="/login" />} />
         <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
       </Routes>

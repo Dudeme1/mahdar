@@ -82,6 +82,37 @@ const css = `
   .ms-signout:hover { color: #3a3530; border-color: #b8b2a6; }
 
   .ms-body { max-width: 680px; margin: 0 auto; padding: 40px 24px 0; }
+  /* Two-column layout when report is visible */
+  .ms-two-col {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    max-width: 100%;
+    padding: 0;
+    height: calc(100vh - 61px); /* subtract header height */
+  }
+  .ms-left-col {
+    width: 440px;
+    flex-shrink: 0;
+    height: 100%;
+    overflow-y: auto;
+    padding: 32px 24px 48px;
+    border-right: 1px solid #e4e0d8;
+  }
+  .ms-right-col {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #f4f5f2;
+    overflow: hidden;
+  }
+  @media (max-width: 860px) {
+    .ms-two-col { flex-direction: column; height: auto; }
+    .ms-left-col { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #e4e0d8; }
+    .ms-right-col { height: auto; min-height: 600px; }
+  }
 
   /* Greeting */
   .ms-greeting { margin-bottom: 28px; }
@@ -767,7 +798,10 @@ function UploadScreen() {
       <style>{css}</style>
       <div className="ms-root">
 
-        <div className="ms-body">
+        <div className={mom ? "ms-two-col" : "ms-body"}>
+
+          {/* Left column wrap when mom is active */}
+          <div className={mom ? "ms-left-col" : ""}>
 
           {/* Greeting */}
           <div className="ms-greeting">
@@ -985,9 +1019,11 @@ function UploadScreen() {
             )}
           </div>
 
-          {/* Output */}
+          </div>{/* end left col */}
+
+          {/* Right column — MahdarScreen */}
           {mom && (
-            <div style={{ marginTop: "32px" }}>
+            <div className="ms-right-col">
               <MahdarScreen
                 token={token}
                 date={mom.date}
