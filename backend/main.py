@@ -352,7 +352,7 @@ async def generate(request: TranscriptRequest):
     message = call_claude_with_retry(
         claude,
         model="claude-opus-4-6",
-        max_tokens=2000,
+        max_tokens=10000,
         messages=[
             {
                 "role": "user",
