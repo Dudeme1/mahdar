@@ -1,38 +1,39 @@
 import { useState, useEffect, useRef } from "react";
 import supabase from "../supabase";
+import { useLanguage } from "../i18n/LanguageContext";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const SIMPLE_VARS = [
-  { token: "{{ title }}",              label: "Meeting Title"      },
-  { token: "{{ date }}",               label: "Date"               },
-  { token: "{{ hijri_date }}",         label: "Hijri Date"         },
-  { token: "{{ location }}",           label: "Location"           },
-  { token: "{{ purpose }}",            label: "Purpose"            },
-  { token: "{{ discussion }}",         label: "Discussion Points"  },
-  { token: "{{ decisions }}",          label: "Decisions Made"     },
-  { token: "{{ next_meeting }}",       label: "Next Meeting Date"  },
-  { token: "{{ hijri_next_meeting }}", label: "Next Meeting Hijri" },
+  { token: "{{ title }}",              key: "varTitle"      },
+  { token: "{{ date }}",               key: "varDate"       },
+  { token: "{{ hijri_date }}",         key: "varHijriDate"  },
+  { token: "{{ location }}",           key: "varLocation"   },
+  { token: "{{ purpose }}",            key: "varPurpose"    },
+  { token: "{{ discussion }}",         key: "varDiscussion" },
+  { token: "{{ decisions }}",          key: "varDecisions"  },
+  { token: "{{ next_meeting }}",       key: "varNextMeeting"},
+  { token: "{{ hijri_next_meeting }}", key: "varHijriNext"  },
 ];
 
 const LOOP_VARS = {
   attendees: {
-    label:   "Attendees Table",
-    forTag:  "{% for attendee in attendees %}",
-    endTag:  "{% endfor %}",
+    labelKey: "loopAttendeesLabel",
+    forTag:   "{% for attendee in attendees %}",
+    endTag:   "{% endfor %}",
     columns: [
-      { token: "{{ attendee.name }}",  header: "Name"  },
-      { token: "{{ attendee.role }}",  header: "Role"  },
-      { token: "{{ attendee.email }}", header: "Email" },
+      { token: "{{ attendee.name }}",  headerKey: "loopAttendeesName"  },
+      { token: "{{ attendee.role }}",  headerKey: "loopAttendeesRole"  },
+      { token: "{{ attendee.email }}", headerKey: "loopAttendeesEmail" },
     ],
   },
   action_items: {
-    label:   "Action Items Table",
-    forTag:  "{% for item in action_items %}",
-    endTag:  "{% endfor %}",
+    labelKey: "loopActionsLabel",
+    forTag:   "{% for item in action_items %}",
+    endTag:   "{% endfor %}",
     columns: [
-      { token: "{{ item.task }}",     header: "Task"     },
-      { token: "{{ item.owner }}",    header: "Owner"    },
-      { token: "{{ item.deadline }}", header: "Deadline" },
+      { token: "{{ item.task }}",     headerKey: "loopActionsTask"     },
+      { token: "{{ item.owner }}",    headerKey: "loopActionsOwner"    },
+      { token: "{{ item.deadline }}", headerKey: "loopActionsDeadline" },
     ],
   },
 };
@@ -258,16 +259,17 @@ function DCell({ text, isLoop }) {
 
 // ─── Loop diagram ─────────────────────────────────────────────────────────────
 function LoopDiagram({ def }) {
+  const { t } = useLanguage();
   return (
     <div style={{ overflowX: "hidden" }}>
       <table className="tmpl-loop-table">
-        <thead><tr>{def.columns.map(c => <th key={c.header}>{c.header}</th>)}</tr></thead>
+        <thead><tr>{def.columns.map(c => <th key={c.headerKey}>{t(`templates.${c.headerKey}`)}</th>)}</tr></thead>
         <tbody>
           <tr className="loop-band">
             <td colSpan={def.columns.length}>
               <div style={{ display:"flex",flexDirection:"column",gap:"3px",alignItems:"flex-start" }}>
                 <DCell text={def.forTag} isLoop />
-                <span style={{ fontSize:"10px",color:"#bbb",fontStyle:"italic",fontFamily:"DM Sans,sans-serif" }}>← paste in its own row, repeats the next row per item</span>
+                <span style={{ fontSize:"10px",color:"#bbb",fontStyle:"italic",fontFamily:"DM Sans,sans-serif" }}>{t("templates.guideLoopNote")}</span>
               </div>
             </td>
           </tr>
@@ -278,14 +280,14 @@ function LoopDiagram({ def }) {
             <td colSpan={def.columns.length}>
               <div style={{ display:"flex",flexDirection:"column",gap:"3px",alignItems:"flex-start" }}>
                 <DCell text={def.endTag} isLoop />
-                <span style={{ fontSize:"10px",color:"#bbb",fontStyle:"italic",fontFamily:"DM Sans,sans-serif" }}>← end of loop</span>
+                <span style={{ fontSize:"10px",color:"#bbb",fontStyle:"italic",fontFamily:"DM Sans,sans-serif" }}>{t("templates.guideLoopEnd")}</span>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
       <p style={{ fontSize:"11px",color:"#b0adb5",margin:"7px 0 0",lineHeight:1.5,fontFamily:"DM Sans,sans-serif" }}>
-        In Word, create a table with this exact structure. The middle row repeats once per item. Click any cell to copy it.
+        {t("templates.guideInWordNote")}
       </p>
     </div>
   );
@@ -293,15 +295,16 @@ function LoopDiagram({ def }) {
 
 // ─── Guide panel ──────────────────────────────────────────────────────────────
 function GuidePanel({ apiUrl }) {
+  const { t } = useLanguage();
   return (
     <div className="tmpl-panel" style={{ flex:"0 0 42%",minWidth:0,background:"#fff",border:"1px solid #e8e7ea",borderRadius:"14px",boxShadow:"0 4px 20px -4px rgba(26,46,34,0.1)",display:"flex",flexDirection:"column",maxHeight:"calc(100vh - 80px)",position:"sticky",top:"20px",overflow:"hidden" }}>
       <div style={{ padding:"16px 18px 14px",flexShrink:0,background:"linear-gradient(135deg,#1a2e22 0%,#253d2e 100%)",borderRadius:"13px 13px 0 0" }}>
         <div style={{ display:"flex",alignItems:"center",gap:"9px",marginBottom:"4px" }}>
           <span style={{ fontSize:"16px" }}>📖</span>
-          <span style={{ fontSize:"14px",fontWeight:"700",color:"#fff",fontFamily:"DM Sans,sans-serif" }}>How to build a template</span>
+          <span style={{ fontSize:"14px",fontWeight:"700",color:"#fff",fontFamily:"DM Sans,sans-serif" }}>{t("templates.guideTitle")}</span>
         </div>
         <p style={{ fontSize:"11.5px",color:"rgba(255,255,255,0.55)",margin:0,fontFamily:"DM Sans,sans-serif",lineHeight:1.5 }}>
-          Place these tokens in your .docx wherever you want the data to appear. Click any token to copy it.
+          {t("templates.guideSubtitle")}
         </p>
       </div>
 
@@ -310,45 +313,45 @@ function GuidePanel({ apiUrl }) {
         <div style={{ background:"rgba(195,152,83,0.07)",border:"1px solid rgba(195,152,83,0.25)",borderRadius:"10px",padding:"12px 14px",display:"flex",alignItems:"center",gap:"12px" }}>
           <span style={{ fontSize:"22px",flexShrink:0 }}>⬇️</span>
           <div style={{ flex:1,minWidth:0 }}>
-            <div style={{ fontSize:"12px",fontWeight:"600",color:"#7a5820",fontFamily:"DM Sans,sans-serif",marginBottom:"2px" }}>Quickest way to start</div>
-            <div style={{ fontSize:"11px",color:"#a07830",fontFamily:"DM Sans,sans-serif",marginBottom:"8px",lineHeight:1.4 }}>Download our pre-built template — all tokens already placed.</div>
+            <div style={{ fontSize:"12px",fontWeight:"600",color:"#7a5820",fontFamily:"DM Sans,sans-serif",marginBottom:"2px" }}>{t("templates.guideDownloadTitle")}</div>
+            <div style={{ fontSize:"11px",color:"#a07830",fontFamily:"DM Sans,sans-serif",marginBottom:"8px",lineHeight:1.4 }}>{t("templates.guideDownloadSubtitle")}</div>
             <a href={`${apiUrl}/starter-template`} download="mahdari_starter_template.docx" style={{ display:"inline-flex",alignItems:"center",gap:"5px",fontSize:"12px",fontWeight:"600",color:"#a07830",textDecoration:"none",fontFamily:"DM Sans,sans-serif",background:"rgba(195,152,83,0.15)",border:"1px solid rgba(195,152,83,0.35)",borderRadius:"7px",padding:"5px 11px" }}>
-              ↓ Download starter template
+              {t("templates.guideDownloadBtn")}
             </a>
           </div>
         </div>
 
         <div style={{ display:"flex",alignItems:"center",gap:"10px" }}>
           <div style={{ flex:1,height:"1px",background:"#f0eff2" }} />
-          <span style={{ fontSize:"11px",color:"#c4bfca",fontFamily:"DM Sans,sans-serif" }}>or build your own</span>
+          <span style={{ fontSize:"11px",color:"#c4bfca",fontFamily:"DM Sans,sans-serif" }}>{t("templates.guideOrBuild")}</span>
           <div style={{ flex:1,height:"1px",background:"#f0eff2" }} />
         </div>
 
         <div>
-          <div className="tmpl-guide-section" style={{ borderTop:"none",marginTop:0,paddingTop:0 }}>Simple fields</div>
-          <p style={{ fontSize:"11.5px",color:"#b0adb5",margin:"0 0 10px",lineHeight:1.5,fontFamily:"DM Sans,sans-serif" }}>Paste these anywhere — heading, paragraph, or table cell.</p>
+          <div className="tmpl-guide-section" style={{ borderTop:"none",marginTop:0,paddingTop:0 }}>{t("templates.guideSimpleFields")}</div>
+          <p style={{ fontSize:"11.5px",color:"#b0adb5",margin:"0 0 10px",lineHeight:1.5,fontFamily:"DM Sans,sans-serif" }}>{t("templates.guideSimpleNote")}</p>
           <div style={{ display:"flex",flexDirection:"column",gap:"6px" }}>
             {SIMPLE_VARS.map(v => (
               <div key={v.token} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",flexWrap:"wrap",padding:"6px 10px",background:"#fafaf9",borderRadius:"8px",border:"1px solid #f0eff2" }}>
-                <span style={{ fontSize:"12px",color:"#666",fontFamily:"DM Sans,sans-serif",fontWeight:"500" }}>{v.label}</span>
+                <span style={{ fontSize:"12px",color:"#666",fontFamily:"DM Sans,sans-serif",fontWeight:"500" }}>{t(`templates.${v.key}`)}</span>
                 <Chip token={v.token} />
               </div>
             ))}
           </div>
           <div style={{ marginTop:"10px",padding:"9px 11px",background:"#f9f8f5",borderRadius:"8px",border:"1px solid #ebe9ed",fontSize:"11px",color:"#aaa",lineHeight:1.5,fontFamily:"DM Sans,sans-serif" }}>
-            💡 Spacing matters — <code style={{ background:"#eee",padding:"1px 4px",borderRadius:"3px" }}>{"{{title}}"}</code> won't work. Use exactly <code style={{ background:"#eee",padding:"1px 4px",borderRadius:"3px" }}>{"{{ title }}"}</code>.
+            💡 {t("templates.guideSpacingNote")} — <code style={{ background:"#eee",padding:"1px 4px",borderRadius:"3px" }}>{"{{title}}"}</code> won't work, use <code style={{ background:"#eee",padding:"1px 4px",borderRadius:"3px" }}>{"{{ title }}"}</code>
           </div>
         </div>
 
         <div>
-          <div className="tmpl-guide-section">Attendees table</div>
-          <p style={{ fontSize:"11.5px",color:"#b0adb5",margin:"0 0 10px",lineHeight:1.5,fontFamily:"DM Sans,sans-serif" }}>Insert a table in Word and structure the rows exactly as below. The middle row auto-repeats per attendee.</p>
+          <div className="tmpl-guide-section">{t("templates.guideAttendeesTable")}</div>
+          <p style={{ fontSize:"11.5px",color:"#b0adb5",margin:"0 0 10px",lineHeight:1.5,fontFamily:"DM Sans,sans-serif" }}>{t("templates.guideAttendeesNote")}</p>
           <LoopDiagram def={LOOP_VARS.attendees} />
         </div>
 
         <div>
-          <div className="tmpl-guide-section">Action items table</div>
-          <p style={{ fontSize:"11.5px",color:"#b0adb5",margin:"0 0 10px",lineHeight:1.5,fontFamily:"DM Sans,sans-serif" }}>Same idea — three rows in a Word table. The middle row repeats per action item.</p>
+          <div className="tmpl-guide-section">{t("templates.guideActionItemsTable")}</div>
+          <p style={{ fontSize:"11.5px",color:"#b0adb5",margin:"0 0 10px",lineHeight:1.5,fontFamily:"DM Sans,sans-serif" }}>{t("templates.guideActionItemsNote")}</p>
           <LoopDiagram def={LOOP_VARS.action_items} />
         </div>
 
@@ -360,6 +363,7 @@ function GuidePanel({ apiUrl }) {
 
 // ─── Preview drawer ───────────────────────────────────────────────────────────
 function PreviewDrawer({ html, loading, error, templateName, onClose }) {
+  const { t } = useLanguage();
   const iframeRef = useRef(null);
   const [iframeHeight, setIframeHeight] = useState(500);
   const [closing, setClosing] = useState(false);
@@ -391,7 +395,7 @@ function PreviewDrawer({ html, loading, error, templateName, onClose }) {
               fontSize: "14px", fontWeight: "700", color: "#1a2e22",
               fontFamily: "DM Sans, sans-serif", letterSpacing: "-0.1px",
             }}>
-              Template preview
+              {t("templates.previewTitle")}
             </div>
             {templateName && (
               <div style={{ fontSize: "11px", color: "#aaa", fontFamily: "DM Sans, sans-serif", marginTop: "1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -404,9 +408,9 @@ function PreviewDrawer({ html, loading, error, templateName, onClose }) {
             {/* Legend — shown once loaded */}
             {html && !loading && (
               <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                <span className="tmpl-legend-found">Detected</span>
-                <span className="tmpl-legend-unknown">Unknown</span>
-                <span className="tmpl-legend-loop">loop</span>
+                <span className="tmpl-legend-found">{t("templates.previewDetected")}</span>
+                <span className="tmpl-legend-unknown">{t("templates.previewUnknown")}</span>
+                <span className="tmpl-legend-loop">{t("templates.previewLoop")}</span>
               </div>
             )}
             <button className="tmpl-drawer-close" onClick={close} title="Close preview">✕</button>
@@ -423,7 +427,7 @@ function PreviewDrawer({ html, loading, error, templateName, onClose }) {
             background: "#fafcff",
             flexShrink: 0,
           }}>
-            Loop fields show sample values — in your actual export they fill separate rows.
+            {t("templates.previewLoopNote")}
           </div>
         )}
 
@@ -432,7 +436,7 @@ function PreviewDrawer({ html, loading, error, templateName, onClose }) {
           {loading && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, gap: "14px", padding: "60px 20px" }}>
               <div className="tmpl-spinner-lg" />
-              <div style={{ fontSize: "13px", color: "#888", fontFamily: "DM Sans, sans-serif" }}>Generating preview…</div>
+              <div style={{ fontSize: "13px", color: "#888", fontFamily: "DM Sans, sans-serif" }}>{t("templates.previewGenerating")}</div>
             </div>
           )}
           {error && !loading && (
@@ -461,6 +465,7 @@ function PreviewDrawer({ html, loading, error, templateName, onClose }) {
 
 // ─── Scan panel ───────────────────────────────────────────────────────────────
 function ScanPanel({ scanResult, onDismiss }) {
+  const { t } = useLanguage();
   if (!scanResult) return null;
   const { found = [], not_found = [], unknown_vars = [] } = scanResult;
   const hasNotFound = not_found.length > 0;
@@ -469,7 +474,7 @@ function ScanPanel({ scanResult, onDismiss }) {
       <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:hasNotFound?"#fffbf0":"#f0fdf4",borderBottom:"1px solid #e8e7ea" }}>
         <div style={{ display:"flex",alignItems:"center",gap:"7px" }}>
           <span style={{ fontSize:"12.5px",fontWeight:"600",color:hasNotFound?"#92400e":"#166534",fontFamily:"DM Sans,sans-serif" }}>
-            {hasNotFound ? `${found.length} detected · ${not_found.length} not in template` : "All variables detected!"}
+            {hasNotFound ? `${found.length} ${t("templates.previewDetected")} · ${not_found.length} ${t("templates.scanNotFoundLabel")}` : t("templates.scanAllDetected")}
           </span>
         </div>
         <button onClick={onDismiss} style={{ background:"transparent",border:"none",cursor:"pointer",color:"#ccc",fontSize:"14px",padding:"2px 5px",lineHeight:1 }}>✕</button>
@@ -477,25 +482,25 @@ function ScanPanel({ scanResult, onDismiss }) {
       <div style={{ padding:"12px 14px",display:"flex",flexDirection:"column",gap:"10px" }}>
         {found.length > 0 && (
           <div>
-            <div style={{ fontSize:"10px",fontWeight:"700",color:"#166534",marginBottom:"6px",textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:"DM Sans,sans-serif" }}>✓ Detected</div>
+            <div style={{ fontSize:"10px",fontWeight:"700",color:"#166534",marginBottom:"6px",textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:"DM Sans,sans-serif" }}>{t("templates.scanDetectedLabel")}</div>
             <div style={{ display:"flex",flexWrap:"wrap",gap:"5px" }}>{found.map(v => <span key={v} className="tmpl-pill found">{v}</span>)}</div>
           </div>
         )}
         {hasNotFound && (
           <div>
-            <div style={{ fontSize:"10px",fontWeight:"700",color:"#92400e",marginBottom:"3px",textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:"DM Sans,sans-serif" }}>Not in template — add if you want</div>
-            <p style={{ fontSize:"11.5px",color:"#aaa",margin:"0 0 8px",fontFamily:"DM Sans,sans-serif" }}>These fields won't appear in your export. Click to copy and paste into your .docx.</p>
+            <div style={{ fontSize:"10px",fontWeight:"700",color:"#92400e",marginBottom:"3px",textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:"DM Sans,sans-serif" }}>{t("templates.scanNotFoundLabel")}</div>
+            <p style={{ fontSize:"11.5px",color:"#aaa",margin:"0 0 8px",fontFamily:"DM Sans,sans-serif" }}>{t("templates.scanNotFoundHint")}</p>
             <div style={{ display:"flex",flexWrap:"wrap",gap:"6px" }}>{not_found.map(v => <Chip key={v} token={`{{ ${v} }}`} />)}</div>
           </div>
         )}
         {unknown_vars.length > 0 && (
           <div>
-            <div style={{ fontSize:"10px",fontWeight:"700",color:"#777",marginBottom:"3px",textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:"DM Sans,sans-serif" }}>Unrecognised</div>
+            <div style={{ fontSize:"10px",fontWeight:"700",color:"#777",marginBottom:"3px",textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:"DM Sans,sans-serif" }}>{t("templates.scanUnknownLabel")}</div>
             <div style={{ display:"flex",flexWrap:"wrap",gap:"5px" }}>{unknown_vars.map(v => <span key={v} className="tmpl-pill missed">{v}</span>)}</div>
           </div>
         )}
         <p style={{ fontSize:"11px",color:"#ccc",margin:0,borderTop:"1px solid #f0eff2",paddingTop:"9px",fontFamily:"DM Sans,sans-serif" }}>
-          Missing variables will be left blank in your export. You can still upload as-is.
+          {t("templates.scanMissingNote")}
         </p>
       </div>
     </div>
@@ -504,6 +509,7 @@ function ScanPanel({ scanResult, onDismiss }) {
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 function TemplatesScreen({ user }) {
+  const { t } = useLanguage();
   const [token, setToken]               = useState(null);
   const [templates, setTemplates]       = useState([]);
   const [loading, setLoading]           = useState(true);
@@ -563,7 +569,7 @@ function TemplatesScreen({ user }) {
       const data = await res.json();
       if (data.error) setPreviewError(data.error);
       else setPreviewHtml(data.html);
-    } catch { setPreviewError("Network error — couldn't generate preview."); }
+    } catch { setPreviewError(t("templates.previewNetworkError")); }
     setPreviewLoading(false);
   };
 
@@ -588,12 +594,12 @@ function TemplatesScreen({ user }) {
     setScanning(false);
   };
 
-  const handlePreviewSaved = async (t) => {
-    if (previewingId === t.id && previewOpen) {
+  const handlePreviewSaved = async (tmpl) => {
+    if (previewingId === tmpl.id && previewOpen) {
       clearPreview(); return;
     }
-    setPreviewingId(t.id);
-    setPreviewName(t.name);
+    setPreviewingId(tmpl.id);
+    setPreviewName(tmpl.name);
     setPreviewHtml(null); setPreviewError(null);
     setPreviewLoading(true);
     setPreviewOpen(true);
@@ -602,11 +608,11 @@ function TemplatesScreen({ user }) {
     if (fileRef.current) fileRef.current.value = "";
 
     try {
-      const res = await fetch(`${API}/preview-template-by-url`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ token, url:t.download_url }) });
+      const res = await fetch(`${API}/preview-template-by-url`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ token, url:tmpl.download_url }) });
       const data = await res.json();
       if (data.error) setPreviewError(data.error);
       else setPreviewHtml(data.html);
-    } catch { setPreviewError("Network error — couldn't fetch template."); }
+    } catch { setPreviewError(t("templates.previewFetchError")); }
     setPreviewLoading(false);
   };
 
@@ -625,10 +631,10 @@ function TemplatesScreen({ user }) {
     fetchTemplates();
   };
 
-  const handleDelete = async (t) => {
-    if (!confirm(`Delete "${t.name}"?`)) return;
-    if (previewingId === t.id) clearPreview();
-    await fetch(`${API}/delete-template`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ token, template_id:t.id, file_path:t.file_path }) });
+  const handleDelete = async (tmpl) => {
+    if (!confirm(`Delete "${tmpl.name}"?`)) return;
+    if (previewingId === tmpl.id) clearPreview();
+    await fetch(`${API}/delete-template`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ token, template_id:tmpl.id, file_path:tmpl.file_path }) });
     fetchTemplates();
   };
 
@@ -639,7 +645,7 @@ function TemplatesScreen({ user }) {
   if (loading) return (
     <><style>{css}</style>
       <div style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:"10px",height:"100vh",fontFamily:"DM Sans,sans-serif",color:"#7a7585",background:"#f4f5f2",fontSize:"13px" }}>
-        <div className="tmpl-spinner" /> Loading…
+        <div className="tmpl-spinner" /> {t("templates.loadingText")}
       </div>
     </>
   );
@@ -655,16 +661,16 @@ function TemplatesScreen({ user }) {
           <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"20px",flexWrap:"wrap" }}>
             <div>
               <div style={{ display:"flex",alignItems:"center",gap:"10px",marginBottom:"3px" }}>
-                <h1 style={{ fontFamily:"'DM Serif Display',serif",fontSize:"26px",fontWeight:"400",color:"#1a2e22",letterSpacing:"-0.4px",margin:0 }}>Templates</h1>
+                <h1 style={{ fontFamily:"'DM Serif Display',serif",fontSize:"26px",fontWeight:"400",color:"#1a2e22",letterSpacing:"-0.4px",margin:0 }}>{t("templates.title")}</h1>
                 {templates.length > 0 && <span className="tmpl-count-badge">{templates.length}</span>}
               </div>
-              <p style={{ fontSize:"13px",color:"#a09aaa",margin:0,fontFamily:"DM Sans,sans-serif" }}>Upload a .docx file — Mahdari fills in your meeting data on export.</p>
+              <p style={{ fontSize:"13px",color:"#a09aaa",margin:0,fontFamily:"DM Sans,sans-serif" }}>{t("templates.description")}</p>
             </div>
 
             {/* Guide toggle only — preview opens as a drawer automatically */}
             <button className={`tmpl-toggle${guideOpen ? " open" : ""}`} onClick={toggleGuide}>
               {!everOpenedGuide && !guideOpen && <span className="tmpl-pulse" />}
-              {guideOpen ? "✕ Close guide" : "How to build a template"}
+              {guideOpen ? t("templates.guideClose") : t("templates.guideOpen")}
             </button>
           </div>
 
@@ -676,21 +682,21 @@ function TemplatesScreen({ user }) {
 
               {/* Upload card */}
               <div style={{ ...card,padding:"22px" }}>
-                <div style={{ fontSize:"10px",fontWeight:"600",letterSpacing:"0.09em",textTransform:"uppercase",color:"#b0adb5",marginBottom:"16px",fontFamily:"DM Sans,sans-serif" }}>Upload new template</div>
+                <div style={{ fontSize:"10px",fontWeight:"600",letterSpacing:"0.09em",textTransform:"uppercase",color:"#b0adb5",marginBottom:"16px",fontFamily:"DM Sans,sans-serif" }}>{t("templates.uploadSection")}</div>
 
                 <input ref={fileRef} type="file" accept=".docx" style={{ display:"none" }} onChange={handleFileChange} />
                 <div className={`tmpl-file-zone${newFile?" has-file":""}`} onClick={() => fileRef.current?.click()} style={{ marginBottom:"12px" }}>
                   {scanning ? (
                     <div style={{ display:"flex",alignItems:"center",gap:"8px" }}>
                       <div className="tmpl-spinner" />
-                      <span style={{ fontSize:"12px",color:"#888",fontFamily:"DM Sans,sans-serif" }}>Scanning & previewing…</span>
+                      <span style={{ fontSize:"12px",color:"#888",fontFamily:"DM Sans,sans-serif" }}>{t("templates.uploadScanning")}</span>
                     </div>
                   ) : newFile ? (
                     <><span style={{ fontSize:"13px",fontWeight:"600",color:"#1a2e22",fontFamily:"DM Sans,sans-serif" }}>{newFile.name}</span>
-                      <span style={{ fontSize:"11px",color:"#a07830",fontFamily:"DM Sans,sans-serif" }}>Click to change</span></>
+                      <span style={{ fontSize:"11px",color:"#a07830",fontFamily:"DM Sans,sans-serif" }}>{t("templates.uploadClickToChange")}</span></>
                   ) : (
-                    <><span style={{ fontSize:"13px",fontWeight:"600",color:"#1a2e22",fontFamily:"DM Sans,sans-serif" }}>Choose .docx file</span>
-                      <span style={{ fontSize:"11px",color:"#bbb",fontFamily:"DM Sans,sans-serif" }}>We'll scan and preview it automatically</span></>
+                    <><span style={{ fontSize:"13px",fontWeight:"600",color:"#1a2e22",fontFamily:"DM Sans,sans-serif" }}>{t("templates.uploadChooseFile")}</span>
+                      <span style={{ fontSize:"11px",color:"#bbb",fontFamily:"DM Sans,sans-serif" }}>{t("templates.uploadFileNote")}</span></>
                   )}
                 </div>
 
@@ -698,55 +704,55 @@ function TemplatesScreen({ user }) {
 
                 <div style={{ marginBottom:"12px" }}>
                   <label style={{ display:"block",fontSize:"11px",fontWeight:"500",color:"#9ca3a8",marginBottom:"5px",fontFamily:"DM Sans,sans-serif" }}>
-                    Template name <span style={{ color:"#d0cdd6" }}>(optional)</span>
+                    {t("templates.uploadNameLabel")} <span style={{ color:"#d0cdd6" }}>{t("templates.uploadNameOptional")}</span>
                   </label>
-                  <input className="tmpl-input" placeholder="e.g. Board Meeting, Weekly Standup…" value={newName} onChange={e => setNewName(e.target.value)} onKeyDown={e => e.key==="Enter" && newFile && handleUpload()} />
+                  <input className="tmpl-input" placeholder={t("templates.uploadNamePlaceholder")} value={newName} onChange={e => setNewName(e.target.value)} onKeyDown={e => e.key==="Enter" && newFile && handleUpload()} />
                 </div>
 
                 <button className="tmpl-btn-primary" onClick={handleUpload} disabled={!newFile||uploading||scanning}>
-                  {uploading ? <><span className="tmpl-spinner-white" /> Uploading…</> : newFile ? "↑ Upload template" : "Choose a file to upload"}
+                  {uploading ? <><span className="tmpl-spinner-white" /> {t("common.uploading")}</> : newFile ? t("templates.uploadBtn") : t("templates.uploadChooseFirst")}
                 </button>
               </div>
 
               {/* Saved templates */}
               <div style={{ ...card,overflow:"hidden" }}>
                 <div style={{ padding:"15px 20px 12px",borderBottom:templates.length>0?"1px solid #f0eff2":"none",display:"flex",alignItems:"center",gap:"8px" }}>
-                  <span style={{ fontSize:"10px",fontWeight:"600",letterSpacing:"0.09em",textTransform:"uppercase",color:"#b0adb5",fontFamily:"DM Sans,sans-serif" }}>Saved templates</span>
+                  <span style={{ fontSize:"10px",fontWeight:"600",letterSpacing:"0.09em",textTransform:"uppercase",color:"#b0adb5",fontFamily:"DM Sans,sans-serif" }}>{t("templates.savedSection")}</span>
                   {templates.length > 0 && <span className="tmpl-count-badge">{templates.length}</span>}
                 </div>
 
                 {templates.length === 0 ? (
                   <div style={{ textAlign:"center",padding:"36px 20px",color:"#c4bfca",fontSize:"13px",fontFamily:"DM Sans,sans-serif" }}>
-                    <div style={{ fontSize:"26px",marginBottom:"8px" }}>·</div>No templates yet
+                    <div style={{ fontSize:"26px",marginBottom:"8px" }}>·</div>{t("templates.savedNoTemplates")}
                   </div>
                 ) : (
                   <table style={{ width:"100%",borderCollapse:"collapse" }}>
                     <thead>
                       <tr style={{ background:"#faf9f7" }}>
-                        {["Name","Uploaded",""].map((h,i) => (
+                        {[t("templates.savedColName"), t("templates.savedColUploaded"), ""].map((h,i) => (
                           <th key={i} style={{ textAlign:i===2?"right":"left",fontSize:"10px",fontWeight:"600",letterSpacing:"0.08em",textTransform:"uppercase",color:"#b0adb5",padding:"10px 18px",borderBottom:"1px solid #e8e7ea",fontFamily:"DM Sans,sans-serif" }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {templates.map(t => (
-                        <tr key={t.id} className="tmpl-row">
+                      {templates.map(tmpl => (
+                        <tr key={tmpl.id} className="tmpl-row">
                           <td style={{ padding:"13px 18px",borderBottom:"1px solid #f0eff2",verticalAlign:"middle" }}>
                             <div style={{ display:"flex",alignItems:"center",gap:"9px" }}>
                               <div style={{ width:"28px",height:"28px",borderRadius:"6px",background:"#f0f7f2",border:"1px solid #d0e8d8",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
                                 <svg width="13" height="15" viewBox="0 0 13 15" fill="none"><rect x="1" y="1" width="11" height="13" rx="2" stroke="#5a8a6a" strokeWidth="1.5"/><line x1="3.5" y1="5" x2="9.5" y2="5" stroke="#5a8a6a" strokeWidth="1.2"/><line x1="3.5" y1="8" x2="9.5" y2="8" stroke="#5a8a6a" strokeWidth="1.2"/><line x1="3.5" y1="11" x2="7" y2="11" stroke="#5a8a6a" strokeWidth="1.2"/></svg>
                               </div>
-                              <span style={{ fontWeight:"600",color:"#1a2e22",fontSize:"13px",fontFamily:"DM Sans,sans-serif" }}>{t.name}</span>
+                              <span style={{ fontWeight:"600",color:"#1a2e22",fontSize:"13px",fontFamily:"DM Sans,sans-serif" }}>{tmpl.name}</span>
                             </div>
                           </td>
-                          <td style={{ padding:"13px 18px",borderBottom:"1px solid #f0eff2",verticalAlign:"middle",fontSize:"12px",color:"#b0adb5",fontFamily:"ui-monospace,Consolas,monospace",whiteSpace:"nowrap" }}>{fmt(t.created_at)}</td>
+                          <td style={{ padding:"13px 18px",borderBottom:"1px solid #f0eff2",verticalAlign:"middle",fontSize:"12px",color:"#b0adb5",fontFamily:"ui-monospace,Consolas,monospace",whiteSpace:"nowrap" }}>{fmt(tmpl.created_at)}</td>
                           <td style={{ padding:"13px 18px",borderBottom:"1px solid #f0eff2",verticalAlign:"middle" }}>
                             <div style={{ display:"flex",alignItems:"center",gap:"7px",justifyContent:"flex-end" }}>
-                              <button className={`tmpl-btn-preview-row${previewingId===t.id&&previewOpen?" active":""}`} onClick={() => handlePreviewSaved(t)}>
-                                {previewingId===t.id&&previewOpen ? "✕ Close" : "Preview"}
+                              <button className={`tmpl-btn-preview-row${previewingId===tmpl.id&&previewOpen?" active":""}`} onClick={() => handlePreviewSaved(tmpl)}>
+                                {previewingId===tmpl.id&&previewOpen ? `✕ ${t("common.close")}` : t("common.preview")}
                               </button>
-                              <a className="tmpl-btn-dl" href={t.download_url} target="_blank" rel="noreferrer">↓ Download</a>
-                              <button className="tmpl-btn-ghost" onClick={() => handleDelete(t)} title="Delete">✕</button>
+                              <a className="tmpl-btn-dl" href={tmpl.download_url} target="_blank" rel="noreferrer">↓ {t("common.download")}</a>
+                              <button className="tmpl-btn-ghost" onClick={() => handleDelete(tmpl)} title="Delete">✕</button>
                             </div>
                           </td>
                         </tr>

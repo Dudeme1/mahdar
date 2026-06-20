@@ -1,4 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+
+/* Arabic UI: switch to Cairo, zero letter-spacing (Arabic doesn't support it) */
+html[lang="ar"] *:not(code):not(.counter) {
+  font-family: 'Cairo', system-ui, sans-serif !important;
+  letter-spacing: 0 !important;
+}
 
 :root {
   /* ── Brand palette (from logo: forest green + warm gold) ── */

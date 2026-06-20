@@ -1,6 +1,7 @@
 import { useState } from "react";
 import supabase from "../supabase";
 import logoUrl from "/icon-512.png";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
@@ -127,6 +128,7 @@ const GoogleIcon = () => (
 );
 
 function LoginScreen({ setUser }) {
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -145,7 +147,7 @@ function LoginScreen({ setUser }) {
     const { error } = await supabase.auth.signUp({ email, password });
     setLoading(false);
     if (error) return alert(error.message);
-    alert("Check your email to verify!");
+    alert(t("login.checkEmail"));
   };
 
   const handleGoogle = async () => {
@@ -202,7 +204,7 @@ function LoginScreen({ setUser }) {
               Mah<span style={{ color: "#c39853" }}>dari</span>
             </div>
             <div style={{ fontSize: "13px", color: "#a09aaa" }}>
-              Your meeting minutes, instantly.
+              {t("login.tagline")}
             </div>
           </div>
 
@@ -224,13 +226,13 @@ function LoginScreen({ setUser }) {
                 className={`login-tab${mode === "login" ? " active" : ""}`}
                 onClick={() => setMode("login")}
               >
-                Sign in
+                {t("login.signIn")}
               </button>
               <button
                 className={`login-tab${mode === "signup" ? " active" : ""}`}
                 onClick={() => setMode("signup")}
               >
-                Create account
+                {t("login.createAccount")}
               </button>
             </div>
 
@@ -239,7 +241,7 @@ function LoginScreen({ setUser }) {
               <input
                 className="login-input"
                 type="email"
-                placeholder="Email address"
+                placeholder={t("login.emailPlaceholder")}
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleSubmit()}
@@ -247,7 +249,7 @@ function LoginScreen({ setUser }) {
               <input
                 className="login-input"
                 type="password"
-                placeholder="Password"
+                placeholder={t("login.passwordPlaceholder")}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleSubmit()}
@@ -261,21 +263,21 @@ function LoginScreen({ setUser }) {
               disabled={loading}
             >
               {loading
-                ? "Please wait…"
-                : mode === "login" ? "Sign in" : "Create account"}
+                ? t("login.pleaseWait")
+                : mode === "login" ? t("login.signIn") : t("login.createAccount")}
             </button>
 
             {/* Divider */}
             <div className="login-divider">
               <div className="login-divider-line" />
-              <span className="login-divider-text">or</span>
+              <span className="login-divider-text">{t("login.or")}</span>
               <div className="login-divider-line" />
             </div>
 
             {/* Google */}
             <button className="login-btn-google" onClick={handleGoogle}>
               <GoogleIcon />
-              Continue with Google
+              {t("login.continueWithGoogle")}
             </button>
 
           </div>
@@ -288,7 +290,7 @@ function LoginScreen({ setUser }) {
             marginTop: "16px",
             fontFamily: "'DM Sans', system-ui, sans-serif",
           }}>
-            By continuing you agree to our terms of service.
+            {t("login.termsNote")}
           </div>
 
         </div>

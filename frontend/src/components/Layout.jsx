@@ -2,8 +2,18 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import supabase from "../supabase";
 import logoUrl from "/icon-512.png";
+import { useLanguage } from "../i18n/LanguageContext";
 
-const css = `
+// CSS is generated dynamically so RTL overrides are applied cleanly
+function makeCSS(isRTL) {
+  const inlineStart = isRTL ? "right" : "left";
+  const inlineEnd   = isRTL ? "left"  : "right";
+  const activeShadow = isRTL ? "inset -2px 0 0" : "inset 2px 0 0";
+  const mobileBoxShadow = isRTL
+    ? "rgba(0,0,0,0.4) -6px 0 32px"
+    : "rgba(0,0,0,0.4) 6px 0 32px";
+
+  return `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
 
   * { box-sizing: border-box; }
@@ -53,7 +63,7 @@ const css = `
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    text-align: left;
+    text-align: ${inlineStart};
     white-space: nowrap;
     transition: background 0.14s, color 0.14s;
     letter-spacing: 0.01em;
@@ -66,7 +76,7 @@ const css = `
     background: var(--sidebar-active-bg);
     color: var(--sidebar-active-text);
     font-weight: 600;
-    box-shadow: inset 2px 0 0 var(--sidebar-active-border);
+    box-shadow: ${activeShadow} var(--sidebar-active-border);
   }
   .lay-nav-btn.collapsed {
     justify-content: center;
@@ -108,6 +118,7 @@ const css = `
     cursor: pointer; white-space: nowrap;
     transition: background 0.12s, color 0.12s, border-color 0.12s;
     letter-spacing: 0.01em;
+    text-align: ${inlineStart};
   }
   .lay-signout-btn:hover {
     background: var(--signout-hover-bg);
@@ -116,11 +127,33 @@ const css = `
   }
   .lay-signout-btn.collapsed { justify-content: center; padding: 8px; }
 
+  /* Language toggle button */
+  .lay-lang-btn {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px;
+    width: 100%; padding: 7px 12px;
+    border: 1px solid rgba(195,152,83,0.3);
+    border-radius: 9px;
+    background: rgba(195,152,83,0.06);
+    color: #a07830;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 11.5px; font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+    transition: background 0.12s, border-color 0.12s;
+    letter-spacing: 0.03em;
+    margin-bottom: 6px;
+  }
+  .lay-lang-btn:hover {
+    background: rgba(195,152,83,0.12);
+    border-color: rgba(195,152,83,0.5);
+  }
+  .lay-lang-btn.collapsed { justify-content: center; padding: 7px; }
+
   .lay-nav-wrap { position: relative; }
   .lay-nav-wrap .lay-tooltip {
     display: none;
     position: absolute;
-    left: calc(100% + 12px);
+    ${inlineStart}: calc(100% + 12px);
     top: 50%; transform: translateY(-50%);
     background: var(--tooltip-bg);
     color: #e8f0ea;
@@ -136,9 +169,9 @@ const css = `
   .lay-nav-wrap .lay-tooltip::before {
     content: '';
     position: absolute;
-    right: 100%; top: 50%; transform: translateY(-50%);
+    ${inlineEnd}: 100%; top: 50%; transform: translateY(-50%);
     border: 5px solid transparent;
-    border-right-color: var(--tooltip-bg);
+    border-${inlineStart}-color: var(--tooltip-bg);
   }
   .lay-sidebar.is-collapsed .lay-nav-wrap:hover .lay-tooltip { display: block; }
   .lay-sidebar.is-collapsed .lay-signout-wrap:hover .lay-signout-tooltip { display: block; }
@@ -147,7 +180,7 @@ const css = `
   .lay-signout-tooltip {
     display: none;
     position: absolute;
-    left: calc(100% + 12px);
+    ${inlineStart}: calc(100% + 12px);
     top: 50%; transform: translateY(-50%);
     background: var(--tooltip-bg); color: #e8f0ea;
     font-size: 12px; font-weight: 500;
@@ -159,9 +192,9 @@ const css = `
   .lay-signout-tooltip::before {
     content: '';
     position: absolute;
-    right: 100%; top: 50%; transform: translateY(-50%);
+    ${inlineEnd}: 100%; top: 50%; transform: translateY(-50%);
     border: 5px solid transparent;
-    border-right-color: var(--tooltip-bg);
+    border-${inlineStart}-color: var(--tooltip-bg);
   }
 
   .lay-overlay {
@@ -226,7 +259,6 @@ const css = `
     flex-shrink: 0;
   }
 
-  /* Logo button — clickable, highlighted on hover */
   .lay-logo-btn {
     display: flex;
     align-items: center;
@@ -239,11 +271,9 @@ const css = `
     transition: background 0.14s;
     min-width: 0;
     flex: 1;
-    text-align: left;
+    text-align: ${inlineStart};
   }
-  .lay-logo-btn:hover {
-    background: rgba(0,0,0,0.04);
-  }
+  .lay-logo-btn:hover { background: rgba(0,0,0,0.04); }
   .lay-logo-btn.collapsed {
     flex: unset;
     padding: 5px;
@@ -265,16 +295,16 @@ const css = `
   @media (max-width: 768px) {
     .lay-sidebar {
       position: fixed !important;
-      left: -240px !important;
+      ${inlineStart}: -240px !important;
       top: 0 !important; bottom: 0 !important;
       z-index: 50 !important;
       width: 220px !important;
       box-shadow: none;
-      transition: left 0.25s cubic-bezier(0.4,0,0.2,1) !important;
+      transition: ${inlineStart} 0.25s cubic-bezier(0.4,0,0.2,1) !important;
     }
     .lay-sidebar.mobile-open {
-      left: 0 !important;
-      box-shadow: rgba(0,0,0,0.4) 6px 0 32px !important;
+      ${inlineStart}: 0 !important;
+      box-shadow: ${mobileBoxShadow} !important;
     }
     .lay-toggle-btn { display: none !important; }
     .lay-hamburger { display: flex; }
@@ -283,39 +313,43 @@ const css = `
     .lay-nav-btn.collapsed { justify-content: flex-start !important; padding: 9px 12px !important; }
     .lay-signout-btn.collapsed { justify-content: flex-start !important; padding: 8px 12px !important; }
   }
-`;
+  `;
+}
 
 const NAV_ITEMS = [
-  { label: "New Mahdar", icon: "/newmahdar_icon.png",  path: "/dashboard" },
-  { label: "Attendees",  icon: "/attendees_icon.png",  path: "/attendees" },
-  { label: "Templates",  icon: "/templates_icon.png",  path: "/templates" },
-  { label: "History",    icon: "/history_icon.png",    path: "/history"   },
+  { key: "newMahdar", icon: "/newmahdar_icon.png",    path: "/dashboard" },
+  { key: "attendees", icon: "/attendees_icon.png",    path: "/attendees" },
+  { key: "templates", icon: "/templates_icon.png",    path: "/templates" },
+  { key: "history",   icon: "/history_icon.png",      path: "/history"   },
 ];
 
 const ACCOUNT_ITEMS = [
-  { label: "Subscription", icon: "/subscription_icon.png", path: "/subscription" },
+  { key: "subscription", icon: "/subscription_icon.png", path: "/subscription" },
 ];
 
 function Layout({ children, user }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const { t, isRTL, language, setLanguage } = useLanguage();
+  const [collapsed, setCollapsed]   = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleSignout = async () => { await supabase.auth.signOut(); };
   const handleNav = (path) => { navigate(path); setMobileOpen(false); };
+  const toggleLanguage = () => setLanguage(language === "en" ? "ar" : "en");
 
-  const sidebarWidth = collapsed ? "58px" : "220px";
+  const sidebarWidth   = collapsed ? "58px" : "220px";
   const sidebarPadding = collapsed ? "18px 10px" : "18px 13px";
 
   return (
     <>
-      <style>{css}</style>
+      <style>{makeCSS(isRTL)}</style>
 
       <div className={`lay-overlay${mobileOpen ? " open" : ""}`} onClick={() => setMobileOpen(false)} />
 
       <div style={{
         display: "flex",
+        flexDirection: "row",
         height: "100vh",
         fontFamily: "'DM Sans', system-ui, 'Segoe UI', sans-serif",
         background: "var(--main-bg)",
@@ -328,7 +362,7 @@ function Layout({ children, user }) {
             width: sidebarWidth,
             flexShrink: 0,
             background: "var(--sidebar-bg)",
-            borderRight: "1px solid var(--sidebar-border)",
+            borderInlineEnd: "1px solid var(--sidebar-border)",
             display: "flex",
             flexDirection: "column",
             padding: sidebarPadding,
@@ -345,7 +379,6 @@ function Layout({ children, user }) {
             padding: "4px 2px 18px",
             marginBottom: "2px",
           }}>
-            {/* Clickable logo — hidden when collapsed */}
             {!collapsed && (
               <button
                 className="lay-logo-btn"
@@ -366,11 +399,11 @@ function Layout({ children, user }) {
               </button>
             )}
 
-            {/* Toggle — centered alone when collapsed, right-aligned when expanded */}
             <button
               className={`lay-toggle-btn${collapsed ? " collapsed" : ""}`}
               onClick={() => setCollapsed(c => !c)}
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={collapsed ? t("layout.expandSidebar") : t("layout.collapseSidebar")}
+              style={{ transform: isRTL ? (collapsed ? "rotate(0deg)" : "rotate(180deg)") : undefined }}
             >
               ‹
             </button>
@@ -378,14 +411,13 @@ function Layout({ children, user }) {
 
           {/* ── Nav items ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
-            {!collapsed && <div className="lay-section-label">Menu</div>}
+            {!collapsed && <div className="lay-section-label">{t("layout.menu")}</div>}
 
-            {NAV_ITEMS.map(({ label, icon, path }) => (
+            {NAV_ITEMS.map(({ key, icon, path }) => (
               <div key={path} className="lay-nav-wrap">
                 <button
                   className={`lay-nav-btn${location.pathname === path ? " active" : ""}${collapsed ? " collapsed" : ""}`}
                   onClick={() => handleNav(path)}
-                  title={collapsed ? label : ""}
                 >
                   <img
                     src={icon}
@@ -393,22 +425,21 @@ function Layout({ children, user }) {
                     className="lay-nav-icon"
                     style={{ width: "18px", height: "18px", objectFit: "contain", flexShrink: 0, opacity: 0.75 }}
                   />
-                  {!collapsed && <span className="lay-nav-label">{label}</span>}
+                  {!collapsed && <span className="lay-nav-label">{t(`layout.nav.${key}`)}</span>}
                 </button>
-                <div className="lay-tooltip">{label}</div>
+                <div className="lay-tooltip">{t(`layout.nav.${key}`)}</div>
               </div>
             ))}
           </div>
 
           {/* ── Account section ── */}
           <div style={{ marginTop: "12px" }}>
-            {!collapsed && <div className="lay-section-label">Account</div>}
-            {ACCOUNT_ITEMS.map(({ label, icon, path }) => (
+            {!collapsed && <div className="lay-section-label">{t("layout.account")}</div>}
+            {ACCOUNT_ITEMS.map(({ key, icon, path }) => (
               <div key={path} className="lay-nav-wrap">
                 <button
                   className={`lay-nav-btn${location.pathname === path ? " active" : ""}${collapsed ? " collapsed" : ""}`}
                   onClick={() => handleNav(path)}
-                  title={collapsed ? label : ""}
                 >
                   <img
                     src={icon}
@@ -416,9 +447,9 @@ function Layout({ children, user }) {
                     className="lay-nav-icon"
                     style={{ width: "18px", height: "18px", objectFit: "contain", flexShrink: 0, opacity: 0.75 }}
                   />
-                  {!collapsed && <span className="lay-nav-label">{label}</span>}
+                  {!collapsed && <span className="lay-nav-label">{t(`layout.nav.${key}`)}</span>}
                 </button>
-                <div className="lay-tooltip">{label}</div>
+                <div className="lay-tooltip">{t(`layout.nav.${key}`)}</div>
               </div>
             ))}
           </div>
@@ -442,16 +473,28 @@ function Layout({ children, user }) {
                 {user.email}
               </div>
             )}
+
+            {/* Language switcher */}
+            <button
+              className={`lay-lang-btn${collapsed ? " collapsed" : ""}`}
+              onClick={toggleLanguage}
+              title={language === "en" ? "Switch to Arabic" : "Switch to English"}
+            >
+              <span style={{ fontSize: "13px" }}>{language === "en" ? "🌐" : "🌐"}</span>
+              {!collapsed && (
+                <span>{language === "en" ? "العربية" : "English"}</span>
+              )}
+            </button>
+
             <div className="lay-signout-wrap">
               <button
                 className={`lay-signout-btn${collapsed ? " collapsed" : ""}`}
                 onClick={handleSignout}
-                title={collapsed ? "Sign out" : ""}
               >
                 <span style={{ fontSize: "12px", flexShrink: 0, opacity: 0.7 }}>↩</span>
-                {!collapsed && <span>Sign out</span>}
+                {!collapsed && <span>{t("common.signOut")}</span>}
               </button>
-              <div className="lay-signout-tooltip">Sign out</div>
+              <div className="lay-signout-tooltip">{t("common.signOut")}</div>
             </div>
           </div>
         </aside>
@@ -465,7 +508,7 @@ function Layout({ children, user }) {
               <img src={logoUrl} alt="Mahdari" className="lay-logo-img-sm" />
               Mah<span>dari</span>
             </button>
-            <button className="lay-hamburger" onClick={() => setMobileOpen(o => !o)} aria-label="Open menu">
+            <button className="lay-hamburger" onClick={() => setMobileOpen(o => !o)} aria-label={t("layout.openMenu")}>
               <span /><span /><span />
             </button>
           </div>

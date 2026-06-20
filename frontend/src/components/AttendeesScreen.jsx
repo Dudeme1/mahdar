@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import supabase from "../supabase";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
@@ -190,6 +191,7 @@ const css = `
 const Dash = () => <span style={{ color: "#d1cdd7" }}>—</span>;
 
 function AttendeesScreen() {
+  const { t } = useLanguage();
   const [token, setToken] = useState(null);
   const [attendees, setAttendees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -219,7 +221,7 @@ function AttendeesScreen() {
   useEffect(() => { if (token) fetchAttendees(); }, [token]);
 
   const handleDelete = async (id) => {
-    if (!confirm("Delete this attendee?")) return;
+    if (!confirm(t("attendees.deleteConfirm"))) return;
     await fetch(`${API}/delete-attendee`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -256,7 +258,7 @@ function AttendeesScreen() {
   };
 
   const handleAdd = async () => {
-    if (!newAttendee.name) return alert("Name is required!");
+    if (!newAttendee.name) return alert(t("attendees.nameRequired"));
     await fetch(`${API}/save-attendee`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -323,7 +325,7 @@ function AttendeesScreen() {
         fontSize: "13px",
       }}>
         <div className="att-spinner" />
-        Loading attendees…
+        {t("attendees.loadingText")}
       </div>
     </>
   );
@@ -351,20 +353,20 @@ function AttendeesScreen() {
                 letterSpacing: "-0.4px",
                 margin: 0,
               }}>
-                Attendees
+                {t("attendees.title")}
               </h1>
               {attendees.length > 0 && (
                 <span className="att-count-badge">{attendees.length}</span>
               )}
             </div>
             <p style={{ fontSize: "13px", color: "#a09aaa", margin: 0 }}>
-              Save recurring attendees so they're recognized automatically in your meeting notes.
+              {t("attendees.description")}
             </p>
           </div>
 
           {/* ── Add form card ── */}
           <div style={{ ...card, padding: "20px 22px" }}>
-            <div style={sectionLabel}>Add attendee</div>
+            <div style={sectionLabel}>{t("attendees.addSection")}</div>
 
             {/* 2-col grid for the 4 fields, button full-width below */}
             <div
@@ -377,21 +379,21 @@ function AttendeesScreen() {
               }}
             >
               {[
-                { key: "name",    label: "Name *",                   placeholder: "Jane Smith" },
-                { key: "email",   label: "Email",                    placeholder: "jane@example.com" },
-                { key: "role",    label: "Role",                     placeholder: "Designer" },
-                { key: "aliases", label: "Aliases (comma-separated)", placeholder: "J, Janie" },
-              ].map(({ key, label, placeholder }) => (
+                { key: "name",    labelKey: "attendees.formName",    placeholderKey: "attendees.formNamePlaceholder" },
+                { key: "email",   labelKey: "attendees.formEmail",   placeholderKey: "attendees.formEmailPlaceholder" },
+                { key: "role",    labelKey: "attendees.formRole",    placeholderKey: "attendees.formRolePlaceholder" },
+                { key: "aliases", labelKey: "attendees.formAliases", placeholderKey: "attendees.formAliasesPlaceholder" },
+              ].map(({ key, labelKey, placeholderKey }) => (
                 <div key={key} style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                   <label style={{
                     fontSize: "11px", fontWeight: "500", color: "#9ca3a8",
                     fontFamily: "'DM Sans', system-ui, sans-serif",
                   }}>
-                    {label}
+                    {t(labelKey)}
                   </label>
                   <input
                     className="att-input"
-                    placeholder={placeholder}
+                    placeholder={t(placeholderKey)}
                     value={newAttendee[key]}
                     onChange={e => setNewAttendee({ ...newAttendee, [key]: e.target.value })}
                     onKeyDown={e => e.key === "Enter" && handleAdd()}
@@ -401,7 +403,7 @@ function AttendeesScreen() {
             </div>
 
             <button className="att-btn-primary" onClick={handleAdd}>
-              + Add attendee
+              {t("attendees.addBtn")}
             </button>
           </div>
 
@@ -414,17 +416,17 @@ function AttendeesScreen() {
                 fontFamily: "'DM Sans', system-ui, sans-serif",
               }}>
                 <div style={{ fontSize: "28px", marginBottom: "10px" }}>👥</div>
-                No attendees yet. Add one above to get started.
+                {t("attendees.emptyState")}
               </div>
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
-                      <th style={th}>Name</th>
-                      <th style={th}>Email</th>
-                      <th style={th}>Role</th>
-                      <th style={th}>Aliases</th>
+                      <th style={th}>{t("attendees.colName")}</th>
+                      <th style={th}>{t("attendees.colEmail")}</th>
+                      <th style={th}>{t("attendees.colRole")}</th>
+                      <th style={th}>{t("attendees.colAliases")}</th>
                       <th style={{ ...th, textAlign: "right" }} />
                     </tr>
                   </thead>
@@ -448,8 +450,8 @@ function AttendeesScreen() {
                             ))}
                             <td style={{ ...td, paddingTop: "10px", paddingBottom: "10px" }}>
                               <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end", alignItems: "center" }}>
-                                <button className="att-btn-save" onClick={() => handleUpdate(a.id)}>Save</button>
-                                <button className="att-btn-cancel" onClick={() => setEditingId(null)}>Cancel</button>
+                                <button className="att-btn-save" onClick={() => handleUpdate(a.id)}>{t("common.save")}</button>
+                                <button className="att-btn-cancel" onClick={() => setEditingId(null)}>{t("common.cancel")}</button>
                               </div>
                             </td>
                           </>
@@ -468,7 +470,7 @@ function AttendeesScreen() {
                             </td>
                             <td style={td}>
                               <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end", alignItems: "center" }}>
-                                <button className="att-btn-edit" onClick={() => handleEdit(a)}>Edit</button>
+                                <button className="att-btn-edit" onClick={() => handleEdit(a)}>{t("common.edit")}</button>
                                 <button className="att-btn-delete" onClick={() => handleDelete(a.id)} title="Delete">✕</button>
                               </div>
                             </td>

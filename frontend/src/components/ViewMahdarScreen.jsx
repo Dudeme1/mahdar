@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import supabase from "../supabase";
 import MahdarScreen from "./MahdarScreen";
+import { useLanguage } from "../i18n/LanguageContext";
 
 function ViewMahdarScreen() {
+  const { t } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -37,7 +39,7 @@ function ViewMahdarScreen() {
       const data = await response.json();
       setMahdar(data.mahdar ?? null);
     } catch {
-      setError("Couldn't load this mahdar. Check your connection and try again.");
+      setError(t("viewMahdar.loadError"));
     } finally {
       setLoading(false);
     }
@@ -102,7 +104,7 @@ function ViewMahdarScreen() {
     return (
       <div style={styles.statusWrapper}>
         <div style={styles.spinner} />
-        <p style={styles.statusText}>Loading mahdar…</p>
+        <p style={styles.statusText}>{t("viewMahdar.loading")}</p>
         <style>{spinKeyframes}</style>
       </div>
     );
@@ -112,7 +114,7 @@ function ViewMahdarScreen() {
       <div style={styles.statusWrapper}>
         <p style={styles.statusText}>{error}</p>
         <button style={styles.retryBtn} onClick={fetchMahdar}>
-          Try again
+          {t("common.retry")}
         </button>
       </div>
     );
@@ -120,9 +122,9 @@ function ViewMahdarScreen() {
   if (!mahdar)
     return (
       <div style={styles.statusWrapper}>
-        <p style={styles.statusText}>Mahdar not found.</p>
-        <button style={styles.retryBtn} onClick={() => navigate("/mahdars")}>
-          Back to history
+        <p style={styles.statusText}>{t("viewMahdar.notFound")}</p>
+        <button style={styles.retryBtn} onClick={() => navigate("/history")}>
+          {t("viewMahdar.backToHistory")}
         </button>
       </div>
     );
@@ -138,7 +140,7 @@ function ViewMahdarScreen() {
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
           </svg>
-          Back
+          {t("viewMahdar.back")}
         </button>
 
         {/* Header */}
@@ -160,7 +162,7 @@ function ViewMahdarScreen() {
         {savedTemplates.length > 0 && (
           <div style={styles.templateBar}>
             <label style={styles.templateLabel} htmlFor="template-select">
-              Template
+              {t("viewMahdar.templateLabel")}
             </label>
             <select
               id="template-select"
@@ -168,14 +170,14 @@ function ViewMahdarScreen() {
               value={selectedTemplateUrl || ""}
               onChange={(e) => setSelectedTemplateUrl(e.target.value || null)}
             >
-              <option value="">No template (default)</option>
-              {savedTemplates.map((t) => (
-                <option key={t.id} value={t.download_url}>
-                  {t.name}
+              <option value="">{t("viewMahdar.noTemplate")}</option>
+              {savedTemplates.map((tmpl) => (
+                <option key={tmpl.id} value={tmpl.download_url}>
+                  {tmpl.name}
                 </option>
               ))}
             </select>
-            {templateLoading && <span style={styles.templateStatus}>Downloading…</span>}
+            {templateLoading && <span style={styles.templateStatus}>{t("viewMahdar.downloading")}</span>}
           </div>
         )}
 

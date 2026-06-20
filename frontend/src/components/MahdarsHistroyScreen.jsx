@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import supabase from "../supabase";
 import { useNavigate } from "react-router-dom";
 import MahdarsActivityChart from "./MahdarsActivityChart";
+import { useLanguage } from "../i18n/LanguageContext";
 
 function MahdarsHistoryScreen() {
+    const { t } = useLanguage();
     const [token, setToken] = useState(null);
     const [mahdars, setMahdars] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -36,7 +38,7 @@ function MahdarsHistoryScreen() {
             const data = await response.json();
             setMahdars(data.mahdars || []);
         } catch {
-            setError("Couldn't load your mahdars. Check your connection and try again.");
+            setError(t("history.loadError"));
         } finally {
             setLoading(false);
         }
@@ -80,7 +82,7 @@ function MahdarsHistoryScreen() {
             if (!response.ok) throw new Error("Delete failed");
             setMahdars((prev) => prev.filter((m) => m.id !== id));
         } catch {
-            setError("Couldn't delete that mahdar. Try again.");
+            setError(t("history.deleteError"));
         } finally {
             setDeletingId(null);
         }
@@ -138,8 +140,8 @@ function MahdarsHistoryScreen() {
 
             {/* Header */}
             <div style={{ marginBottom: "1.25rem" }}>
-                <h2 style={{ fontSize: "17px", fontWeight: "600", color: "#1a2e22", margin: 0 }}>Mahdars</h2>
-                <p style={{ fontSize: "13px", color: "#b0adb5", marginTop: "3px" }}>Your generated mahdar history</p>
+                <h2 style={{ fontSize: "17px", fontWeight: "600", color: "#1a2e22", margin: 0 }}>{t("history.title")}</h2>
+                <p style={{ fontSize: "13px", color: "#b0adb5", marginTop: "3px" }}>{t("history.subtitle")}</p>
             </div>
 
             {/* Mahdar Activity Line Chart */}
@@ -150,7 +152,7 @@ function MahdarsHistoryScreen() {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", background: "#fbf1f0", border: "1px solid #e3b8b3", borderRadius: "10px", padding: "10px 14px", marginBottom: "12px", fontSize: "13px", color: "#9c4338" }}>
                     <span>{error}</span>
                     <button onClick={fetchMahdars} style={{ fontSize: "12px", fontWeight: 600, color: "#9c4338", background: "transparent", border: "1px solid #e3b8b3", borderRadius: "7px", padding: "4px 12px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                        Try again
+                        {t("common.retry")}
                     </button>
                 </div>
             )}
@@ -164,7 +166,7 @@ function MahdarsHistoryScreen() {
                     <input
                         className="mh-search"
                         type="text"
-                        placeholder="Search mahdars..."
+                        placeholder={t("history.searchPlaceholder")}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         dir="auto"
@@ -196,12 +198,12 @@ function MahdarsHistoryScreen() {
                 ) : mahdars.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "52px 20px", color: "#b0adb5", fontSize: "13px" }}>
                         <div style={{ fontSize: "26px", marginBottom: "10px" }}>📄</div>
-                        No mahdars yet. Upload a meeting summary to create your first one.
+                        {t("history.noMahdars")}
                     </div>
                 ) : filtered.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "52px 20px", color: "#b0adb5", fontSize: "13px" }}>
                         <div style={{ fontSize: "26px", marginBottom: "10px" }}>🔍</div>
-                        No results for "{search}"
+                        {t("history.noResults")} "{search}"
                     </div>
                 ) : (
                     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
@@ -213,23 +215,23 @@ function MahdarsHistoryScreen() {
                         <thead>
                             <tr style={{ background: "#faf9f7" }}>
                                 <th className="mh-th" onClick={() => handleSort("title")} style={thStyle}>
-                                    Title <SortIcon col="title" />
+                                    {t("history.colTitle")} <SortIcon col="title" />
                                 </th>
                                 <th className="mh-th" onClick={() => handleSort("date")} style={thStyle}>
-                                    Date created <SortIcon col="date" />
+                                    {t("history.colDate")} <SortIcon col="date" />
                                 </th>
                                 <th style={{ padding: "10px 18px", borderBottom: "1px solid #e8e7ea" }} />
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map((t) => (
+                            {filtered.map((mahdar) => (
                                 <tr
-                                    key={t.id}
+                                    key={mahdar.id}
                                     className="mh-row"
-                                    onClick={() => openRow(t.id)}
-                                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openRow(t.id); } }}
+                                    onClick={() => openRow(mahdar.id)}
+                                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openRow(mahdar.id); } }}
                                     tabIndex={0}
-                                    aria-label={`Open ${t.title || "untitled mahdar"}`}
+                                    aria-label={`Open ${mahdar.title || "untitled mahdar"}`}
                                 >
                                     <td style={tdStyle}>
                                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -239,28 +241,28 @@ function MahdarsHistoryScreen() {
                                                 </svg>
                                             </div>
                                             <span dir="auto" style={{ fontWeight: "600", color: "#1a2e22", fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                                {t.title || "Untitled"}
+                                                {mahdar.title || "Untitled"}
                                             </span>
                                         </div>
                                     </td>
                                     <td style={{ ...tdStyle, fontSize: "12px", color: "#b0adb5", fontFamily: "ui-monospace, Consolas, monospace" }}>
-                                        {formatDate(t.created_at)}
+                                        {formatDate(mahdar.created_at)}
                                     </td>
                                     <td style={{ ...tdStyle, textAlign: "right" }}>
                                         <div style={{ display: "inline-flex", gap: "6px" }} onMouseLeave={() => setConfirmId(null)}>
-                                            <button className="icon-btn" onClick={(e) => handleDownload(e, t.download_url)} aria-label="Download">
+                                            <button className="icon-btn" onClick={(e) => handleDownload(e, mahdar.download_url)} aria-label="Download">
                                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                                                 </svg>
-                                                <span className="tip">Download</span>
+                                                <span className="tip">{t("history.download")}</span>
                                             </button>
                                             <button
-                                                className={`icon-btn danger${confirmId === t.id ? " confirm" : ""}`}
-                                                onClick={(e) => handleDelete(e, t.id)}
-                                                disabled={deletingId === t.id}
-                                                aria-label={confirmId === t.id ? "Confirm delete" : "Delete"}
+                                                className={`icon-btn danger${confirmId === mahdar.id ? " confirm" : ""}`}
+                                                onClick={(e) => handleDelete(e, mahdar.id)}
+                                                disabled={deletingId === mahdar.id}
+                                                aria-label={confirmId === mahdar.id ? "Confirm delete" : "Delete"}
                                             >
-                                                {deletingId === t.id ? (
+                                                {deletingId === mahdar.id ? (
                                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                                                         <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                                                     </svg>
@@ -269,7 +271,7 @@ function MahdarsHistoryScreen() {
                                                         <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                                                     </svg>
                                                 )}
-                                                <span className="tip">{confirmId === t.id ? "Click again to confirm" : "Delete"}</span>
+                                                <span className="tip">{confirmId === mahdar.id ? t("history.confirmDelete") : t("history.delete")}</span>
                                             </button>
                                         </div>
                                     </td>

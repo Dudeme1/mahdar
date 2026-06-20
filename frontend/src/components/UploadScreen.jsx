@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import supabase from "../supabase";
 import MahdarScreen from "./MahdarScreen";
 import logoUrl from "/icon-512.png";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap');
@@ -557,6 +558,7 @@ function WaveCanvas({ canvasRef }) {
 }
 
 function UploadScreen() {
+  const { t } = useLanguage();
   const [token, setToken]                   = useState(null);
   const [audioFile, setAudioFile]           = useState(null);
   const [template, setTemplate]             = useState(null);
@@ -568,7 +570,7 @@ function UploadScreen() {
   const [loading, setLoading]               = useState(false);
   const [generatingStatus, setGeneratingStatus] = useState("");
   const [mom, setMom]                       = useState(null);
-  const [language, setLanguage]             = useState("english");
+  const [outputLanguage, setOutputLanguage] = useState("english");
   const [limitReached, setLimitReached]     = useState(false);
   const [limitMessage, setLimitMessage]     = useState("");
 
@@ -591,9 +593,9 @@ function UploadScreen() {
   // Greeting
   const greeting = (() => {
     const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 17) return "Good afternoon";
-    return "Good evening";
+    if (h < 12) return t("upload.greetingMorning");
+    if (h < 17) return t("upload.greetingAfternoon");
+    return t("upload.greetingEvening");
   })();
 
   useEffect(() => {
@@ -746,7 +748,7 @@ function UploadScreen() {
 
     setMom(null);
     setLoading(true);
-    setGeneratingStatus("Preparing…");
+    setGeneratingStatus(t("upload.statusPreparing"));
 
     let t1, t2;
     try {
@@ -755,7 +757,7 @@ function UploadScreen() {
       if (hasText) {
         transcript = textInput;
       } else {
-        setGeneratingStatus("Transcribing your audio…");
+        setGeneratingStatus(t("upload.statusTranscribing"));
         const formData = new FormData();
         formData.append("file", audioFile);
         const res  = await fetch(`${API}/transcribe`, { method: "POST", body: formData });
@@ -764,16 +766,16 @@ function UploadScreen() {
       }
 
       if (transcript) {
-        setGeneratingStatus("Analyzing your meeting…");
+        setGeneratingStatus(t("upload.statusAnalyzing"));
 
         // Progressive status updates while waiting for Claude
-        t1 = setTimeout(() => setGeneratingStatus("Extracting discussion points and action items…"), 5000);
-        t2 = setTimeout(() => setGeneratingStatus("Matching attendees and finalizing…"), 12000);
+        t1 = setTimeout(() => setGeneratingStatus(t("upload.statusExtracting")), 5000);
+        t2 = setTimeout(() => setGeneratingStatus(t("upload.statusMatching")), 12000);
 
         const res = await fetch(`${API}/generate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript, language, token }),
+          body: JSON.stringify({ transcript, language: outputLanguage, token }),
         });
 
         clearTimeout(t1);
@@ -789,14 +791,14 @@ function UploadScreen() {
           return;
         }
 
-        setGeneratingStatus("Done! Your mahdar is ready.");
+        setGeneratingStatus(t("upload.statusDone"));
         setMom(gen_data);
       }
     } catch (err) {
       console.error(err);
       clearTimeout(t1);
       clearTimeout(t2);
-      setGeneratingStatus("Something went wrong — please try again.");
+      setGeneratingStatus(t("upload.statusError"));
     }
 
     setLoading(false);
@@ -836,7 +838,7 @@ function UploadScreen() {
           <div className="ms-greeting">
             <p className="ms-greeting-line">{greeting}</p>
             <h1 className="ms-greeting-title">
-              Tell me about your <em>meeting.</em>
+              {t("upload.tagline")} <em>{t("upload.meeting")}</em>
             </h1>
           </div>
 
@@ -878,12 +880,12 @@ function UploadScreen() {
 
                   <div className={micLabelClass}>
                     {recState === "transcribing"
-                      ? "Transcribing…"
+                      ? t("upload.transcribing")
                       : recState === "recording"
-                        ? "Tap to stop"
+                        ? t("upload.tapToStop")
                         : textInput
-                          ? "Re-record"
-                          : "Tap to record"}
+                          ? t("upload.reRecord")
+                          : t("upload.tapToRecord")}
                   </div>
 
                   {recState === "recording" && (
@@ -895,22 +897,22 @@ function UploadScreen() {
                 <div className="ms-wave-col">
                   {recState === "idle" && !textInput && (
                     <>
-                      <div className="ms-idle-hint">Record your meeting</div>
-                      <div className="ms-idle-sub">Speak and we'll transcribe it for you</div>
+                      <div className="ms-idle-hint">{t("upload.recordMeeting")}</div>
+                      <div className="ms-idle-sub">{t("upload.speakTranscribe")}</div>
                     </>
                   )}
 
                   {recState === "idle" && textInput && (
                     <>
-                      <div className="ms-idle-hint" style={{ color: "#b07d3a" }}>✓ Transcript ready</div>
-                      <div className="ms-idle-sub">Review and edit below, then generate</div>
+                      <div className="ms-idle-hint" style={{ color: "#b07d3a" }}>{t("upload.transcriptReady")}</div>
+                      <div className="ms-idle-sub">{t("upload.reviewEdit")}</div>
                     </>
                   )}
 
                   {recState === "recording" && (
                     <>
                       <WaveCanvas canvasRef={canvasRef} />
-                      <div className="ms-wave-hint">Tap the mic to stop recording</div>
+                      <div className="ms-wave-hint">{t("upload.tapToStop")}</div>
                     </>
                   )}
 
@@ -921,7 +923,7 @@ function UploadScreen() {
                         <span className="ms-ts-dot" />
                         <span className="ms-ts-dot" />
                         <span className="ms-ts-dot" />
-                        <span className="ms-ts-label">Transcribing your recording…</span>
+                        <span className="ms-ts-label">{t("upload.transcribingRecording")}</span>
                       </div>
                     </>
                   )}
@@ -932,7 +934,7 @@ function UploadScreen() {
             {/* Divider */}
             <div className="ms-divider-row">
               <div className="ms-divider-line" />
-              <div className="ms-divider-text">or write notes</div>
+              <div className="ms-divider-text">{t("upload.orWriteNotes")}</div>
               <div className="ms-divider-line" />
             </div>
 
@@ -942,7 +944,7 @@ function UploadScreen() {
                 className={`ms-input${textInput ? " has-content" : ""}`}
                 value={textInput}
                 onChange={e => setTextInput(e.target.value)}
-                placeholder="Summarize what happened — attendees, decisions, action items…"
+                placeholder={t("upload.textareaPlaceholder")}
               />
             </div>
 
@@ -953,7 +955,7 @@ function UploadScreen() {
                 onClick={processAudio}
                 disabled={loading || recState !== "idle"}
               >
-                Generate Mahdar
+                {t("upload.generateMahdar")}
               </button>
 
               {/* Upload audio (secondary) */}
@@ -967,7 +969,7 @@ function UploadScreen() {
                         title="Remove"
                       >✕</button>
                     </span>
-                  : <>↑ Upload audio</>
+                  : <>{t("upload.uploadAudio")}</>
                 }
                 <input
                   ref={audioFileRef}
@@ -983,12 +985,12 @@ function UploadScreen() {
 
               <select
                 className="ms-select"
-                value={language}
-                onChange={e => setLanguage(e.target.value)}
+                value={outputLanguage}
+                onChange={e => setOutputLanguage(e.target.value)}
                 style={{ marginLeft: "auto" }}
               >
-                <option value="english">English</option>
-                <option value="arabic">Arabic</option>
+                <option value="english">{t("upload.english")}</option>
+                <option value="arabic">{t("upload.arabic")}</option>
               </select>
             </div>
           </div>
@@ -1000,7 +1002,7 @@ function UploadScreen() {
 
           {/* Template row */}
           <div className="ms-template-row">
-            <span className="ms-template-label">Template</span>
+            <span className="ms-template-label">{t("upload.templateLabel")}</span>
             <input
               ref={templateFileRef}
               type="file"
@@ -1014,7 +1016,7 @@ function UploadScreen() {
             >
               {template
                 ? <span className="ms-badge">✓ {template.name}</span>
-                : "Upload .docx"}
+                : t("upload.templateUploadDocx")}
             </button>
 
             {savedTemplates.length > 0 && (
@@ -1036,9 +1038,9 @@ function UploadScreen() {
                   }}
                   style={{ flex: 1, minWidth: 0 }}
                 >
-                  <option value="">Choose saved template…</option>
-                  {savedTemplates.map(t => (
-                    <option key={t.id} value={t.download_url}>{t.name}</option>
+                  <option value="">{t("upload.templateChooseSaved")}</option>
+                  {savedTemplates.map(tmpl => (
+                    <option key={tmpl.id} value={tmpl.download_url}>{tmpl.name}</option>
                   ))}
                 </select>
               </>
@@ -1046,7 +1048,7 @@ function UploadScreen() {
 
             {!template && savedTemplates.length === 0 && (
               <span className="ms-template-divider" style={{ fontSize: "12px", color: "#c4bdb4" }}>
-                Optional — shapes the output structure
+                {t("upload.templateOptional")}
               </span>
             )}
           </div>
@@ -1080,17 +1082,17 @@ function UploadScreen() {
           <div className="ms-limit-backdrop" onClick={() => setLimitReached(false)}>
             <div className="ms-limit-modal" onClick={e => e.stopPropagation()}>
               <div className="ms-limit-icon">⭐</div>
-              <h2 className="ms-limit-title">Upgrade to <span>Pro</span></h2>
+              <h2 className="ms-limit-title">{t("limit.title")} <span>{t("limit.pro")}</span></h2>
               <p className="ms-limit-msg">{limitMessage}</p>
-              <div className="ms-price-badge">$15 / month</div>
+              <div className="ms-price-badge">{t("limit.price")}</div>
               <div className="ms-limit-perks">
-                <div className="ms-perk-row"><span className="ms-perk-dot" />Unlimited Mahdars</div>
-                <div className="ms-perk-row"><span className="ms-perk-dot" />Custom templates</div>
-                <div className="ms-perk-row"><span className="ms-perk-dot" />Arabic &amp; English output</div>
-                <div className="ms-perk-row"><span className="ms-perk-dot" />Priority processing</div>
+                <div className="ms-perk-row"><span className="ms-perk-dot" />{t("limit.perkUnlimited")}</div>
+                <div className="ms-perk-row"><span className="ms-perk-dot" />{t("limit.perkTemplates")}</div>
+                <div className="ms-perk-row"><span className="ms-perk-dot" />{t("limit.perkLanguages")}</div>
+                <div className="ms-perk-row"><span className="ms-perk-dot" />{t("limit.perkPriority")}</div>
               </div>
-              <button className="ms-limit-cta" onClick={handleSubscribe}>⭐ Upgrade to Pro</button>
-              <button className="ms-limit-dismiss" onClick={() => setLimitReached(false)}>Maybe later</button>
+              <button className="ms-limit-cta" onClick={handleSubscribe}>{t("limit.upgradeCta")}</button>
+              <button className="ms-limit-dismiss" onClick={() => setLimitReached(false)}>{t("limit.dismiss")}</button>
             </div>
           </div>
         )}

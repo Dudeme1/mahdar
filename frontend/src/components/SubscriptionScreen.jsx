@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import supabase from "../supabase";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
@@ -198,35 +199,9 @@ const css = `
   }
 `;
 
-const FREE_FEATURES = [
-  { text: "4 mahdars per month", yes: true },
-  { text: "All output languages", yes: true },
-  { text: "Attendees library", yes: true },
-  { text: "250 mahdars per month", yes: false },
-  { text: "Custom Word templates", yes: false },
-  { text: "Priority support", yes: false },
-];
-
-const PRO_FEATURES = [
-  { text: "250 mahdars per month", yes: true },
-  { text: "All output languages", yes: true },
-  { text: "Attendees library", yes: true },
-  { text: "Custom Word templates", yes: true },
-  { text: "Priority support", yes: true },
-  { text: "Early access to new features", yes: true },
-];
-
-const CANCEL_REASONS = [
-  "Select a reason…",
-  "Too expensive",
-  "Not using it enough",
-  "Missing features I need",
-  "Switching to another tool",
-  "Technical issues",
-  "Other",
-];
 
 function SubscriptionScreen({ user }) {
+  const { t } = useLanguage();
   const [token, setToken]           = useState(null);
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading]       = useState(true);
@@ -308,8 +283,9 @@ function SubscriptionScreen({ user }) {
   };
 
   const handleCancel = async () => {
-    if (!cancelReason || cancelReason === "Select a reason…") {
-      alert("Please select a reason for cancelling.");
+    const firstReason = t("subscription.cancelReasons")[0];
+    if (!cancelReason || cancelReason === firstReason) {
+      alert(t("subscription.cancelReasonRequired"));
       return;
     }
     setCancelling(true);
@@ -384,10 +360,10 @@ function SubscriptionScreen({ user }) {
               fontSize: "26px", fontWeight: "400", color: "#1a2e22",
               margin: "0 0 4px", letterSpacing: "-0.3px",
             }}>
-              Subscription
+              {t("subscription.title")}
             </h1>
             <p style={{ margin: 0, fontSize: "13px", color: "#9ca3a8" }}>
-              Manage your plan and billing
+              {t("subscription.manage")}
             </p>
           </div>
 
@@ -403,7 +379,7 @@ function SubscriptionScreen({ user }) {
               display: "flex", alignItems: "center", justifyContent: "space-between",
               flexWrap: "wrap", gap: "12px",
             }}>
-              <div className="sub-section-title" style={{ margin: 0 }}>Current Plan</div>
+              <div className="sub-section-title" style={{ margin: 0 }}>{t("subscription.currentPlan")}</div>
               {loading ? (
                 <div className="sub-skeleton" style={{ width: "80px", height: "22px" }} />
               ) : (
@@ -412,7 +388,7 @@ function SubscriptionScreen({ user }) {
                     {isPro ? "✦ Pro" : "Free"}
                   </span>
                   {willCancel ? (
-                    <span className="sub-badge will-cancel">Cancels at period end</span>
+                    <span className="sub-badge will-cancel">{t("subscription.cancelsAtPeriodEnd")}</span>
                   ) : (
                     <span className={`sub-badge ${subscription?.status === "active" ? "active" : "cancelled"}`}>
                       {subscription?.status ?? "active"}
@@ -439,7 +415,7 @@ function SubscriptionScreen({ user }) {
                       alignItems: "baseline", marginBottom: "8px",
                     }}>
                       <span style={{ fontSize: "13px", color: "#444", fontWeight: "500" }}>
-                        Mahdars this month
+                        {t("subscription.mahdarsThisMonth")}
                       </span>
                       <span style={{ fontSize: "13px", fontWeight: "700", color: progressColor }}>
                         {used} <span style={{ fontWeight: "400", color: "#9ca3a8" }}>/ {limit}</span>
@@ -450,7 +426,7 @@ function SubscriptionScreen({ user }) {
                     </div>
                     {progressPct >= 90 && !isPro && (
                       <p style={{ margin: "8px 0 0", fontSize: "12px", color: "#ef4444", fontWeight: "500" }}>
-                        Almost at your limit — upgrade to keep going
+                        {t("subscription.nearLimitWarning")}
                       </p>
                     )}
                   </div>
@@ -458,21 +434,21 @@ function SubscriptionScreen({ user }) {
                   {/* Meta rows */}
                   <div style={{ marginBottom: "20px" }}>
                     <div className="sub-meta-row">
-                      <span className="sub-meta-label">Plan</span>
+                      <span className="sub-meta-label">{t("subscription.fieldPlan")}</span>
                       <span className="sub-meta-value" style={{ color: isPro ? "#a07830" : "#1a1a1a" }}>
-                        {isPro ? "Pro — $15 / month" : "Free"}
+                        {isPro ? t("subscription.proPlanName") : t("subscription.freePlanName")}
                       </span>
                     </div>
                     {isPro && subscription?.ends_at && (
                       <div className="sub-meta-row">
-                        <span className="sub-meta-label">{willCancel ? "Cancels on" : "Renews on"}</span>
+                        <span className="sub-meta-label">{willCancel ? t("subscription.fieldCancelsOn") : t("subscription.fieldRenewsOn")}</span>
                         <span className="sub-meta-value" style={{ color: willCancel ? "#92400e" : undefined }}>
                           {formatDate(subscription.ends_at)}
                         </span>
                       </div>
                     )}
                     <div className="sub-meta-row">
-                      <span className="sub-meta-label">Usage resets</span>
+                      <span className="sub-meta-label">{t("subscription.fieldUsageResets")}</span>
                       <span className="sub-meta-value">
                         {subscription?.last_reset_date
                           ? formatDate(
@@ -487,7 +463,7 @@ function SubscriptionScreen({ user }) {
                     </div>
                     {user?.email && (
                       <div className="sub-meta-row">
-                        <span className="sub-meta-label">Account</span>
+                        <span className="sub-meta-label">{t("subscription.fieldAccount")}</span>
                         <span className="sub-meta-value" style={{ fontSize: "12px", color: "#6b7280" }}>
                           {user.email}
                         </span>
@@ -498,17 +474,17 @@ function SubscriptionScreen({ user }) {
                   {/* Renewal note */}
                   {isPro && !willCancel && (
                     <p style={{ margin: "0 0 16px", fontSize: "12px", color: "#9ca3a8" }}>
-                      Your subscription renews automatically each month. You can cancel anytime below.
+                      {t("subscription.autoRenewNote")}
                     </p>
                   )}
                   {willCancel && (
                     <p style={{ margin: "0 0 16px", fontSize: "12px", color: "#92400e", fontWeight: "500" }}>
-                      Your Pro access continues until {formatDate(subscription?.ends_at)}. After that, your account will revert to the Free plan.
+                      {t("subscription.willCancelNote", { date: formatDate(subscription?.ends_at) })}
                     </p>
                   )}
                   {cancelDone && (
                     <p style={{ margin: "0 0 16px", fontSize: "12px", color: "#065f46", fontWeight: "600" }}>
-                      ✓ Cancellation scheduled. You still have access until {formatDate(subscription?.ends_at)}.
+                      {t("subscription.cancelDoneNote", { date: formatDate(subscription?.ends_at) })}
                     </p>
                   )}
 
@@ -516,7 +492,7 @@ function SubscriptionScreen({ user }) {
                   <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
                     {!isPro ? (
                       <button className="sub-btn-gold" onClick={handleUpgrade} disabled={upgrading}>
-                        {upgrading ? "Redirecting…" : "✦ Upgrade to Pro"}
+                        {upgrading ? t("subscription.redirecting") : t("subscription.upgradeBtn")}
                       </button>
                     ) : (
                       <>
@@ -525,7 +501,7 @@ function SubscriptionScreen({ user }) {
                             className="sub-btn-danger"
                             onClick={() => setShowCancelForm(true)}
                           >
-                            Cancel subscription
+                            {t("subscription.cancelSub")}
                           </button>
                         )}
                         {showCancelForm && (
@@ -533,7 +509,7 @@ function SubscriptionScreen({ user }) {
                             className="sub-btn-outline"
                             onClick={() => setShowCancelForm(false)}
                           >
-                            Keep subscription
+                            {t("subscription.keepSub")}
                           </button>
                         )}
                       </>
@@ -545,31 +521,31 @@ function SubscriptionScreen({ user }) {
                     <div className="sub-cancel-form" style={{ marginTop: "16px" }}>
                       <div>
                         <label style={{ fontSize: "12px", fontWeight: "600", color: "#444", display: "block", marginBottom: "6px" }}>
-                          Why are you cancelling?
+                          {t("subscription.cancelWhyLabel")}
                         </label>
                         <select
                           className="sub-select"
                           value={cancelReason}
                           onChange={e => setCancelReason(e.target.value)}
                         >
-                          {CANCEL_REASONS.map(r => (
+                          {(t("subscription.cancelReasons") || []).map(r => (
                             <option key={r} value={r}>{r}</option>
                           ))}
                         </select>
                       </div>
                       <div>
                         <label style={{ fontSize: "12px", fontWeight: "600", color: "#444", display: "block", marginBottom: "6px" }}>
-                          Anything else? <span style={{ fontWeight: "400", color: "#9ca3a8" }}>(optional)</span>
+                          {t("subscription.cancelAnythingElse")} <span style={{ fontWeight: "400", color: "#9ca3a8" }}>{t("subscription.cancelOptional")}</span>
                         </label>
                         <textarea
                           className="sub-textarea"
-                          placeholder="Tell us more…"
+                          placeholder={t("subscription.cancelMsgPlaceholder")}
                           value={cancelMessage}
                           onChange={e => setCancelMessage(e.target.value)}
                         />
                       </div>
                       <p className="sub-cancel-note">
-                        Your Pro access will continue until the end of your current billing period ({formatDate(subscription?.ends_at)}). You won't be charged again.
+                        {t("subscription.cancelNote", { date: formatDate(subscription?.ends_at) })}
                       </p>
                       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                         <button
@@ -578,10 +554,10 @@ function SubscriptionScreen({ user }) {
                           disabled={cancelling}
                           style={{ background: "#b91c1c", color: "#fff", border: "none" }}
                         >
-                          {cancelling ? "Cancelling…" : "Confirm cancellation"}
+                          {cancelling ? t("subscription.cancelConfirming") : t("subscription.cancelConfirmBtn")}
                         </button>
                         <button className="sub-btn-outline" onClick={() => setShowCancelForm(false)}>
-                          Keep my plan
+                          {t("subscription.cancelKeepPlan")}
                         </button>
                       </div>
                     </div>
@@ -593,7 +569,7 @@ function SubscriptionScreen({ user }) {
 
           {/* ── Plans comparison ── */}
           <div>
-            <div className="sub-section-title">Plans</div>
+            <div className="sub-section-title">{t("subscription.plansSection")}</div>
             <div style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
@@ -606,18 +582,18 @@ function SubscriptionScreen({ user }) {
                     display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px",
                   }}>
                     <span style={{ fontSize: "15px", fontWeight: "700", color: "#1a2e22", fontFamily: "'DM Sans', sans-serif" }}>
-                      Free
+                      {t("subscription.freePlanName")}
                     </span>
-                    {!isPro && <span className="sub-badge free">Current plan</span>}
+                    {!isPro && <span className="sub-badge free">{t("subscription.currentPlanBadge")}</span>}
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: "3px" }}>
                     <span style={{ fontSize: "26px", fontWeight: "700", color: "#1a2e22", fontFamily: "'DM Serif Display', serif" }}>$0</span>
-                    <span style={{ fontSize: "12px", color: "#9ca3a8" }}>/month</span>
+                    <span style={{ fontSize: "12px", color: "#9ca3a8" }}>{t("subscription.month")}</span>
                   </div>
                 </div>
                 <div className="sub-divider" />
                 <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "2px" }}>
-                  {FREE_FEATURES.map((f, i) => (
+                  {(t("subscription.freeFeatures") || []).map((f, i) => (
                     <div className="sub-feature-item" key={i}>
                       <span className={`sub-feature-check ${f.yes ? "yes" : "no"}`}>{f.yes ? "✓" : "✕"}</span>
                       <span style={{ color: f.yes ? "#444" : "#c4bfca" }}>{f.text}</span>
@@ -635,16 +611,16 @@ function SubscriptionScreen({ user }) {
                     <span style={{ fontSize: "15px", fontWeight: "700", color: "#a07830", fontFamily: "'DM Sans', sans-serif" }}>
                       ✦ Pro
                     </span>
-                    {isPro && <span className="sub-badge pro">Current plan</span>}
+                    {isPro && <span className="sub-badge pro">{t("subscription.currentPlanBadge")}</span>}
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: "3px" }}>
                     <span style={{ fontSize: "26px", fontWeight: "700", color: "#a07830", fontFamily: "'DM Serif Display', serif" }}>$15</span>
-                    <span style={{ fontSize: "12px", color: "#c39853" }}>/month</span>
+                    <span style={{ fontSize: "12px", color: "#c39853" }}>{t("subscription.month")}</span>
                   </div>
                 </div>
                 <div className="sub-divider" style={{ background: "rgba(195,152,83,0.2)" }} />
                 <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "2px" }}>
-                  {PRO_FEATURES.map((f, i) => (
+                  {(t("subscription.proFeatures") || []).map((f, i) => (
                     <div className="sub-feature-item" key={i}>
                       <span className="sub-feature-check yes" style={{ background: "rgba(195,152,83,0.15)", color: "#a07830" }}>✓</span>
                       <span>{f.text}</span>
@@ -658,7 +634,7 @@ function SubscriptionScreen({ user }) {
                     disabled={upgrading}
                     style={{ marginTop: "20px", width: "100%" }}
                   >
-                    {upgrading ? "Redirecting…" : "✦ Upgrade to Pro"}
+                    {upgrading ? t("subscription.redirecting") : t("subscription.upgradeBtn")}
                   </button>
                 )}
               </div>
@@ -668,7 +644,7 @@ function SubscriptionScreen({ user }) {
           {/* ── Billing history ── */}
           {isPro && (
             <div>
-              <div className="sub-section-title">Billing History</div>
+              <div className="sub-section-title">{t("subscription.billingTitle")}</div>
               <div style={{
                 background: "#fff", border: "1px solid #e8e7ea",
                 borderRadius: "14px", overflow: "hidden",
@@ -683,7 +659,7 @@ function SubscriptionScreen({ user }) {
                 ) : payments.length === 0 ? (
                   <div style={{ padding: "32px 24px", textAlign: "center" }}>
                     <p style={{ margin: 0, fontSize: "13px", color: "#9ca3a8" }}>
-                      No billing history yet.
+                      {t("subscription.billingNoHistory")}
                     </p>
                   </div>
                 ) : (
@@ -691,10 +667,10 @@ function SubscriptionScreen({ user }) {
                     <table className="sub-table">
                       <thead>
                         <tr>
-                          <th>Date</th>
-                          <th>Amount</th>
-                          <th>Status</th>
-                          <th>Method</th>
+                          <th>{t("subscription.billingColDate")}</th>
+                          <th>{t("subscription.billingColAmount")}</th>
+                          <th>{t("subscription.billingColStatus")}</th>
+                          <th>{t("subscription.billingColMethod")}</th>
                         </tr>
                       </thead>
                       <tbody>

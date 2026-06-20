@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
@@ -170,6 +171,7 @@ const fieldLabel = {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 function CopyButton({ value }) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const handle = async () => {
     await navigator.clipboard.writeText(value || "");
@@ -178,7 +180,7 @@ function CopyButton({ value }) {
   };
   return (
     <button className={`mah-copy-btn${copied ? " copied" : ""}`} onClick={handle}>
-      {copied ? "✓" : "Copy"}
+      {copied ? t("common.copied") : t("common.copy")}
     </button>
   );
 }
@@ -209,6 +211,7 @@ function SectionHead({ title }) {
 }
 
 function RememberButton({ onClick }) {
+  const { t } = useLanguage();
   const [state, setState] = useState("idle");
   const handle = async () => {
     setState("saving");
@@ -221,13 +224,14 @@ function RememberButton({ onClick }) {
       className={`mah-remember-btn${state === "saved" ? " saved" : ""}`}
       onClick={handle} disabled={state === "saving"}
     >
-      {state === "saved" ? "✓ Saved" : state === "saving" ? "Saving…" : "Remember"}
+      {state === "saved" ? t("common.saved") : state === "saving" ? t("common.saving") : t("mahdar.fieldRemember")}
     </button>
   );
 }
 
 // ─── Preview drawer ───────────────────────────────────────────────────────────
 function PreviewDrawer({ html, loading, onClose }) {
+  const { t } = useLanguage();
   const iframeRef = useRef(null);
   const [iframeHeight, setIframeHeight] = useState(500);
   const [closing, setClosing] = useState(false);
@@ -247,18 +251,18 @@ function PreviewDrawer({ html, loading, onClose }) {
         <div className="mah-drawer-header">
           <div>
             <div style={{ fontSize:"14px",fontWeight:"700",color:"#1a2e22",fontFamily:"DM Sans,sans-serif" }}>
-              Exported preview
+              {t("mahdar.drawerTitle")}
             </div>
             <div style={{ fontSize:"11px",color:"#aaa",fontFamily:"DM Sans,sans-serif",marginTop:"1px" }}>
-              How your template will look with this report's data
+              {t("mahdar.drawerSubtitle")}
             </div>
           </div>
           <div style={{ display:"flex",alignItems:"center",gap:"8px",flexShrink:0 }}>
             {html && !loading && (
               <div style={{ display:"flex",gap:"5px" }}>
-                <span className="mah-legend-found">Filled</span>
-                <span className="mah-legend-unknown">Unknown</span>
-                <span className="mah-legend-loop">loop</span>
+                <span className="mah-legend-found">{t("mahdar.filled")}</span>
+                <span className="mah-legend-unknown">{t("mahdar.unknown")}</span>
+                <span className="mah-legend-loop">{t("mahdar.loop")}</span>
               </div>
             )}
             <button className="mah-drawer-close" onClick={close}>✕</button>
@@ -267,7 +271,7 @@ function PreviewDrawer({ html, loading, onClose }) {
 
         {html && !loading && (
           <div style={{ padding:"7px 20px",fontSize:"11px",color:"#94a3b8",fontFamily:"DM Sans,sans-serif",borderBottom:"1px solid #f0eff2",background:"#fafcff",flexShrink:0 }}>
-            This preview uses your actual meeting data — not placeholders.
+            {t("mahdar.drawerPreviewNote")}
           </div>
         )}
 
@@ -275,7 +279,7 @@ function PreviewDrawer({ html, loading, onClose }) {
           {loading && (
             <div style={{ display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flex:1,gap:"14px",padding:"60px 20px" }}>
               <div className="mah-spinner-lg" />
-              <div style={{ fontSize:"13px",color:"#888",fontFamily:"DM Sans,sans-serif" }}>Generating preview…</div>
+              <div style={{ fontSize:"13px",color:"#888",fontFamily:"DM Sans,sans-serif" }}>{t("mahdar.generatingPreview")}</div>
             </div>
           )}
           {html && !loading && (
@@ -298,6 +302,7 @@ function MahdarScreen({
   attendees, discussion, decisions, action_items,
   next_meeting, hijri_next_meeting, template,
 }) {
+  const { t } = useLanguage();
   const [edit_date,               setDate]               = useState(date);
   const [edit_hijri_date,         setHijriDate]          = useState(hijri_date);
   const [edit_title,              setTitle]              = useState(title);
@@ -339,7 +344,7 @@ function MahdarScreen({
   };
 
   const handleExport = async () => {
-    if (!template) return alert("Please select a template to export.");
+    if (!template) return alert(t("mahdar.selectTemplateAlert"));
     const fd = new FormData();
     fd.append("template", template);
     fd.append("date", edit_date);
@@ -360,7 +365,7 @@ function MahdarScreen({
 
   // Build preview HTML with real meeting data filled in
   const handlePreview = async () => {
-    if (!template) return alert("Select a template first.");
+    if (!template) return alert(t("mahdar.selectTemplateFirst"));
     if (previewOpen) { setPreviewOpen(false); return; }
 
     setPreviewOpen(true);
@@ -410,10 +415,10 @@ function MahdarScreen({
         <div className="mah-col-header">
           <div>
             <div style={{ fontFamily:"'DM Serif Display',serif",fontSize:"18px",fontWeight:"400",color:"#1a2e22",letterSpacing:"-0.3px" }}>
-              MoM Report
+              {t("mahdar.reportTitle")}
             </div>
             <div style={{ fontSize:"11.5px",color:"#a09aaa",marginTop:"1px",fontFamily:"DM Sans,sans-serif" }}>
-              {edit_title || "Untitled meeting"} · Review and edit before exporting
+              {edit_title || t("mahdar.untitledMeeting")} · {t("mahdar.subtitle")}
             </div>
           </div>
           <div style={{ display:"flex",gap:"8px",alignItems:"center" }}>
@@ -421,12 +426,12 @@ function MahdarScreen({
               className={`mah-preview-btn${previewOpen ? " open" : ""}`}
               onClick={handlePreview}
               disabled={!template}
-              title={template ? "Preview with template" : "Select a template first"}
+              title={template ? t("mahdar.previewWithTemplate") : t("mahdar.selectTemplateFirst")}
             >
-              {previewOpen ? "✕ Close" : "Preview"}
+              {previewOpen ? t("mahdar.closePreview") : t("common.preview")}
             </button>
             <button className="mah-export-btn" onClick={handleExport}>
-              Export to Word
+              {t("mahdar.exportWord")}
             </button>
           </div>
         </div>
@@ -436,35 +441,35 @@ function MahdarScreen({
 
           {/* Meeting Info */}
           <div style={card}>
-            <SectionHead title="Meeting Info" />
+            <SectionHead title={t("mahdar.meetingInfo")} />
             <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:"12px" }}>
-              <Field label="Date" value={edit_date} onChange={setDate} />
-              <Field label="Hijri Date" value={edit_hijri_date} onChange={setHijriDate} />
-              <Field label="Title" value={edit_title} onChange={setTitle} />
-              <Field label="Location" value={edit_location} onChange={setLocation} />
-              <Field label="Next Meeting" value={edit_next_meeting} onChange={setNextMeeting} />
-              <Field label="Hijri Next Meeting" value={edit_hijri_next_meeting} onChange={setHijriNextMeeting} />
+              <Field label={t("mahdar.fieldDate")} value={edit_date} onChange={setDate} />
+              <Field label={t("mahdar.fieldHijriDate")} value={edit_hijri_date} onChange={setHijriDate} />
+              <Field label={t("mahdar.fieldTitle")} value={edit_title} onChange={setTitle} />
+              <Field label={t("mahdar.fieldLocation")} value={edit_location} onChange={setLocation} />
+              <Field label={t("mahdar.fieldNextMeeting")} value={edit_next_meeting} onChange={setNextMeeting} />
+              <Field label={t("mahdar.fieldHijriNext")} value={edit_hijri_next_meeting} onChange={setHijriNextMeeting} />
             </div>
           </div>
 
           {/* Attendees */}
           <div style={card}>
-            <SectionHead title="Attendees" />
+            <SectionHead title={t("mahdar.attendeesSection")} />
             <div style={{ display:"flex",flexDirection:"column",gap:"8px" }}>
               {edit_attendees.map((attendee, index) => (
                 <div key={index} className="mah-attendee-card" style={{ border:"1px solid #e8e7ea",borderRadius:"12px",padding:"14px",background:"#fafaf9" }}>
                   <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:"10px" }}>
-                    <Field label="Name"  value={attendee.name}  onChange={v => updateAttendee(index, "name",  v)} />
-                    <Field label="Email" value={attendee.email} onChange={v => updateAttendee(index, "email", v)} />
-                    <Field label="Role"  value={attendee.role}  onChange={v => updateAttendee(index, "role",  v)} />
+                    <Field label={t("mahdar.fieldName")}  value={attendee.name}  onChange={v => updateAttendee(index, "name",  v)} />
+                    <Field label={t("mahdar.fieldEmail")} value={attendee.email} onChange={v => updateAttendee(index, "email", v)} />
+                    <Field label={t("mahdar.fieldRole")}  value={attendee.role}  onChange={v => updateAttendee(index, "role",  v)} />
                   </div>
                   <div style={{ display:"flex",alignItems:"center",gap:"8px",marginTop:"10px",paddingTop:"10px",borderTop:"1px solid #f0eff2",flexWrap:"wrap" }}>
-                    <span style={{ fontSize:"11px",color:"#b0adb5",whiteSpace:"nowrap" }}>Override:</span>
+                    <span style={{ fontSize:"11px",color:"#b0adb5",whiteSpace:"nowrap" }}>{t("mahdar.fieldOverride")}</span>
                     <select className="mah-override-select" onChange={e => {
                       const sel = saved_attendees.find(a => a.name === e.target.value);
                       if (sel) { const u = [...edit_attendees]; u[index] = { name:sel.name, email:sel.email||"", role:sel.role||"" }; setAttendees(u); }
                     }}>
-                      <option value="">Select saved attendee…</option>
+                      <option value="">{t("mahdar.fieldSavedAttendeePlaceholder")}</option>
                       {saved_attendees.map((a, i) => <option key={i} value={a.name}>{a.name}</option>)}
                     </select>
                     <RememberButton onClick={() => saveAttendee(attendee)} />
@@ -476,27 +481,27 @@ function MahdarScreen({
 
           {/* Meeting Details */}
           <div style={card}>
-            <SectionHead title="Meeting Details" />
+            <SectionHead title={t("mahdar.meetingDetails")} />
             <div style={{ display:"flex",flexDirection:"column",gap:"14px" }}>
-              <Field label="Purpose"    value={edit_purpose}    onChange={setPurpose}    large />
-              <Field label="Discussion" value={edit_discussion} onChange={setDiscussion} large />
-              <Field label="Decisions"  value={edit_decisions}  onChange={setDecisions}  large />
+              <Field label={t("mahdar.fieldPurpose")}    value={edit_purpose}    onChange={setPurpose}    large />
+              <Field label={t("mahdar.fieldDiscussion")} value={edit_discussion} onChange={setDiscussion} large />
+              <Field label={t("mahdar.fieldDecisions")}  value={edit_decisions}  onChange={setDecisions}  large />
             </div>
           </div>
 
           {/* Action Items */}
           <div style={{ ...card, padding:0, overflow:"hidden" }}>
             <div style={{ padding:"16px 20px 0" }}>
-              <SectionHead title="Action Items" />
+              <SectionHead title={t("mahdar.actionItemsSection")} />
             </div>
             <div style={{ overflowX:"auto" }}>
               <table style={{ width:"100%",borderCollapse:"collapse" }}>
                 <thead>
                   <tr>
-                    <th style={{ ...th,width:"36px" }}>#</th>
-                    <th style={th}>Task</th>
-                    <th style={th}>Owner</th>
-                    <th style={th}>Deadline</th>
+                    <th style={{ ...th,width:"36px" }}>{t("mahdar.fieldNumber")}</th>
+                    <th style={th}>{t("mahdar.fieldTask")}</th>
+                    <th style={th}>{t("mahdar.fieldOwner")}</th>
+                    <th style={th}>{t("mahdar.fieldDeadline")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -513,7 +518,7 @@ function MahdarScreen({
                             <input
                               className="mah-action-input"
                               value={item[field] || ""}
-                              placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                              placeholder={t(`mahdar.field${field.charAt(0).toUpperCase() + field.slice(1)}`)}
                               onChange={e => updateActionItem(index, field, e.target.value)}
                             />
                           </td>
