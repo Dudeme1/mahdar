@@ -29,7 +29,7 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 import time
 from hijri_converter import Gregorian
-from docxtpl import DocxTemplate
+from docxtpl import DocxTemplate, RichText
 import tempfile
 import os
 
@@ -151,6 +151,57 @@ def match_attendee(name: str, saved_attendees: list, threshold: int = 75):
     return None
 
 import time
+
+# ─── Filename sanitizer ────────────────────────────────────────────────────────
+def sanitize_filename(filename: str) -> str:
+    """Return a Supabase-storage-safe filename: ASCII-only, no spaces, safe chars."""
+    if '.' in filename:
+        name, ext = filename.rsplit('.', 1)
+        ext = '.' + re.sub(r'[^\w]', '', ext).lower()
+    else:
+        name, ext = filename, ''
+    name = name.replace(' ', '_')
+    name = name.encode('ascii', 'ignore').decode('ascii')  # strip non-ASCII (e.g. Arabic)
+    name = re.sub(r'[^\w\-]', '_', name)
+    name = re.sub(r'_+', '_', name).strip('_')
+    if not name:
+        name = f"file_{int(time.time())}"
+    return name + ext
+
+# ─── Rich-text helpers for Word export ────────────────────────────────────────
+def str_to_richtext(text: str) -> RichText:
+    """Convert a newline-separated string into a docxtpl RichText with Word line breaks."""
+    if not text or not text.strip():
+        return RichText('')
+    rt = RichText()
+    lines = [l for l in text.split('\n') if l.strip()]
+    for i, line in enumerate(lines):
+        if i < len(lines) - 1:
+            rt.add(line, break_=True)
+        else:
+            rt.add(line)
+    return rt
+
+def patch_docx_richtext(template_bytes: bytes, vars: list) -> bytes:
+    """Pre-process a .docx template: replace {{ var }} with {{ r var }} in document.xml
+    so that RichText objects (with line breaks) are rendered correctly by docxtpl."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(io.BytesIO(template_bytes)) as zin:
+        with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                data = zin.read(item.filename)
+                if item.filename == 'word/document.xml':
+                    xml = data.decode('utf-8', errors='replace')
+                    for var in vars:
+                        xml = re.sub(
+                            r'\{\{\s*' + re.escape(var) + r'\s*\}\}',
+                            '{{ r ' + var + ' }}',
+                            xml
+                        )
+                    data = xml.encode('utf-8')
+                zout.writestr(item, data)
+    buf.seek(0)
+    return buf.read()
 
 def call_claude_with_retry(claude, messages, model, max_tokens, max_retries=3):
     for attempt in range(max_retries):
@@ -366,7 +417,7 @@ async def generate(request: TranscriptRequest):
                     - location: location or online/in-person
                     - purpose: purpose of the meeting
                     - attendees: list of objects.Extract names from transcript, leave email and role as empty string if not mentioned.
-                    - discussion: key discussion points
+                    - discussion: a JSON array of strings, each string being one key discussion point. Example: ["Point one", "Point two"]. Be thorough and cover all main topics discussed.
                     - decisions: decisions made
                     - action_items: list of objects with the following keys: "task", "owner", "deadline" (leave empty string if unknown)
                     - next_meeting: next meeting date if mentioned
@@ -384,6 +435,16 @@ async def generate(request: TranscriptRequest):
     content = message.content[0].text
     clean = content.replace("```json", "").replace("```", "").strip()
     mom_data = json.loads(clean)
+
+    # Normalize discussion: Claude may return a list or a string
+    disc = mom_data.get("discussion", "")
+    if isinstance(disc, list):
+        mom_data["discussion"] = "\n".join(
+            f"{i+1}. {str(p).strip()}"
+            for i, p in enumerate(disc)
+            if p and str(p).strip()
+        )
+
     print(mom_data)
 
     # Add Hijri Dates
@@ -573,24 +634,28 @@ async def export(
     next_meeting: str = Form("")
 ):
     template_bytes = await template.read()
-    
+
+    # Patch {{ discussion }} / {{ decisions }} → {{ r discussion }} / {{ r decisions }}
+    # so that RichText line breaks are rendered correctly in Word.
+    template_bytes = patch_docx_richtext(template_bytes, ["discussion", "decisions"])
+
     tmp_path = "temp_template.docx"
     output_path = "temp_output.docx"
-    
+
     with open(tmp_path, "wb") as f:
         f.write(template_bytes)
 
     doc = DocxTemplate(tmp_path)
-    
+
     context = {
         "date": date,
         "title": title,
         "location": location,
-        "attendees": json.loads(attendees),       # parse JSON string to list
+        "attendees": json.loads(attendees),
         "purpose": purpose,
-        "discussion": discussion,
-        "decisions": decisions,
-        "action_items": json.loads(action_items), # parse JSON string to list
+        "discussion": str_to_richtext(discussion),
+        "decisions": str_to_richtext(decisions),
+        "action_items": json.loads(action_items),
         "next_meeting": next_meeting
     }
     
@@ -672,8 +737,9 @@ async def upload_template(
     
     user_id = user.user.id
     file_bytes = await file.read()
-    file_path = f"{user_id}/{file.filename}"
-    
+    safe_name = sanitize_filename(file.filename)
+    file_path = f"{user_id}/{safe_name}"
+
     # Upload to Supabase Storage
     supabase.storage.from_("templates").upload(
         file_path,
@@ -947,6 +1013,11 @@ async def get_mahdar(request: GetMahdarRequest):
 class SubscribeRequest(BaseModel):
     token: str
 
+class CancelSubscriptionRequest(BaseModel):
+    token: str
+    reason: str = ""
+    message: str = ""
+
 # Subscriptions
 @app.post("/get-subscription")
 async def get_subscription(request: TokenRequest):
@@ -1019,29 +1090,129 @@ async def subscribe(request: SubscribeRequest):
 async def webhook(request: Request):
     payload = await request.body()
     headers = dict(request.headers)
-    
+
     try:
         event = dodo.webhooks.unwrap(
             payload,
             headers,
             os.getenv("DODO_WEBHOOK_SECRET")
         )
-        
+
+        data = event.data
+        email = data.customer.email
+        user_result = supabase.table("users").select("*").eq("email", email).maybe_single().execute()
+
+        if not user_result.data:
+            print(f"Webhook: no user found for {email}")
+            return {"received": True}
+
+        user_id = user_result.data["user_id"]
+
         if event.type == "subscription.active":
-            email = event.data.customer.email
-            user_result = supabase.table("users").select("*").eq("email", email).maybe_single().execute()
-            
-            if user_result.data:
-                user_id = user_result.data["user_id"]
-                # Update subscription to pro
-                supabase.table("subscriptions").update({
-                    "plan": "pro",
-                    "status": "active",
-                    "ends_at": (datetime.now() + relativedelta(months=1)).isoformat()
-                }).eq("user_id", user_id).execute()
-                print(f"Upgraded to Pro: {email}")
-            
+            update = {
+                "plan": "pro",
+                "status": "active",
+                "ends_at": data.next_billing_date.isoformat() if data.next_billing_date else None,
+                "dodo_subscription_id": data.subscription_id,
+                "dodo_customer_id": data.customer.customer_id,
+                "cancel_at_next_billing_date": data.cancel_at_next_billing_date,
+            }
+            supabase.table("subscriptions").update(update).eq("user_id", user_id).execute()
+            print(f"Subscription activated: {email}")
+
+        elif event.type == "subscription.renewed":
+            update = {
+                "plan": "pro",
+                "status": "active",
+                "ends_at": data.next_billing_date.isoformat() if data.next_billing_date else None,
+                "cancel_at_next_billing_date": False,
+            }
+            supabase.table("subscriptions").update(update).eq("user_id", user_id).execute()
+            print(f"Subscription renewed: {email}")
+
+        elif event.type == "subscription.cancelled":
+            supabase.table("subscriptions").update({
+                "plan": "free",
+                "status": "cancelled",
+                "cancel_at_next_billing_date": False,
+            }).eq("user_id", user_id).execute()
+            print(f"Subscription cancelled: {email}")
+
+        elif event.type == "subscription.expired":
+            supabase.table("subscriptions").update({
+                "plan": "free",
+                "status": "expired",
+            }).eq("user_id", user_id).execute()
+            print(f"Subscription expired: {email}")
+
         return {"received": True}
     except Exception as e:
         print(f"Webhook error: {e}")
         return JSONResponse(status_code=400, content={"error": str(e)})
+
+@app.post("/cancel-subscription")
+async def cancel_subscription(request: CancelSubscriptionRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+
+    user_id = user.user.id
+    result = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
+    if not result.data:
+        return {"error": "No subscription found"}
+
+    dodo_sub_id = result.data.get("dodo_subscription_id")
+    if not dodo_sub_id:
+        return {"error": "No Dodo subscription ID on record — contact support."}
+
+    try:
+        dodo.subscriptions.update(dodo_sub_id, cancel_at_next_billing_date=True)
+    except Exception as e:
+        return {"error": f"Failed to cancel with payment provider: {str(e)}"}
+
+    # Persist cancellation in DB — columns may need to be added (see README)
+    try:
+        supabase.table("subscriptions").update({
+            "cancel_at_next_billing_date": True,
+            "cancellation_reason": request.reason,
+            "cancellation_message": request.message,
+        }).eq("user_id", user_id).execute()
+    except Exception as e:
+        print(f"DB cancellation update warning: {e}")
+
+    return {"message": "Subscription will cancel at the end of the current billing period."}
+
+
+@app.post("/get-payment-history")
+async def get_payment_history(request: TokenRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+
+    user_id = user.user.id
+    result = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
+    if not result.data:
+        return {"payments": []}
+
+    dodo_customer_id = result.data.get("dodo_customer_id")
+    if not dodo_customer_id:
+        return {"payments": []}
+
+    try:
+        page = dodo.payments.list(customer_id=dodo_customer_id, page_size=20)
+        payments = []
+        for p in page.items:
+            payments.append({
+                "payment_id": p.payment_id,
+                "date": p.created_at.isoformat() if p.created_at else None,
+                "amount": round(p.total_amount / 100, 2),
+                "currency": str(p.currency).upper() if p.currency else "USD",
+                "status": str(p.status) if p.status else "unknown",
+                "payment_method": p.payment_method,
+                "card_last_four": p.card_last_four,
+                "subscription_id": p.subscription_id,
+            })
+        return {"payments": payments}
+    except Exception as e:
+        print(f"Payment history error: {e}")
+        return {"payments": [], "error": str(e)}

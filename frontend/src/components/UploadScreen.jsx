@@ -461,6 +461,15 @@ const css = `
     font-weight: 600;
   }
 
+  /* Generating status */
+  .ms-gen-status {
+    font-size: 12px;
+    color: #9a9387;
+    font-style: italic;
+    margin: 8px 0 0;
+    animation: fadein 0.2s ease;
+  }
+
   /* Limit modal */
   .ms-limit-backdrop {
     position: fixed;
@@ -557,6 +566,7 @@ function UploadScreen() {
   const [recState, setRecState]             = useState("idle"); // idle | recording | transcribing
   const [recElapsed, setRecElapsed]         = useState(0);
   const [loading, setLoading]               = useState(false);
+  const [generatingStatus, setGeneratingStatus] = useState("");
   const [mom, setMom]                       = useState(null);
   const [language, setLanguage]             = useState("english");
   const [limitReached, setLimitReached]     = useState(false);
@@ -736,13 +746,16 @@ function UploadScreen() {
 
     setMom(null);
     setLoading(true);
+    setGeneratingStatus("Preparing…");
 
+    let t1, t2;
     try {
       let transcript = "";
 
       if (hasText) {
         transcript = textInput;
       } else {
+        setGeneratingStatus("Transcribing your audio…");
         const formData = new FormData();
         formData.append("file", audioFile);
         const res  = await fetch(`${API}/transcribe`, { method: "POST", body: formData });
@@ -751,27 +764,43 @@ function UploadScreen() {
       }
 
       if (transcript) {
+        setGeneratingStatus("Analyzing your meeting…");
+
+        // Progressive status updates while waiting for Claude
+        t1 = setTimeout(() => setGeneratingStatus("Extracting discussion points and action items…"), 5000);
+        t2 = setTimeout(() => setGeneratingStatus("Matching attendees and finalizing…"), 12000);
+
         const res = await fetch(`${API}/generate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ transcript, language, token }),
         });
+
+        clearTimeout(t1);
+        clearTimeout(t2);
+
         const gen_data = await res.json();
 
         if (gen_data.error === "limit_reached") {
           setLimitReached(true);
           setLimitMessage(gen_data.message);
           setLoading(false);
+          setGeneratingStatus("");
           return;
         }
 
+        setGeneratingStatus("Done! Your mahdar is ready.");
         setMom(gen_data);
       }
     } catch (err) {
       console.error(err);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      setGeneratingStatus("Something went wrong — please try again.");
     }
 
     setLoading(false);
+    setGeneratingStatus("");
   };
 
   // ─── Misc helpers ──────────────────────────────────────────────────────────
@@ -924,9 +953,7 @@ function UploadScreen() {
                 onClick={processAudio}
                 disabled={loading || recState !== "idle"}
               >
-                {loading
-                  ? <><span className="ms-spinner" /> Generating…</>
-                  : "Generate Mahdar"}
+                Generate Mahdar
               </button>
 
               {/* Upload audio (secondary) */}
@@ -965,6 +992,11 @@ function UploadScreen() {
               </select>
             </div>
           </div>
+
+          {/* Generating status */}
+          {loading && generatingStatus && (
+            <p className="ms-gen-status">{generatingStatus}</p>
+          )}
 
           {/* Template row */}
           <div className="ms-template-row">
