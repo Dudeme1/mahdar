@@ -118,6 +118,37 @@ const css = `
   }
   .mah-action-input::placeholder { color: #c4bfca; }
 
+  /* Drag handle */
+  .mah-drag-handle {
+    display:flex;align-items:center;justify-content:center;
+    width:22px;height:22px;flex-shrink:0;
+    cursor:grab;color:#c4bfca;border-radius:4px;
+    opacity:0.35;transition:opacity 0.15s;
+    user-select:none;
+  }
+  .mah-drag-handle:active { cursor:grabbing; }
+  .mah-attendee-card:hover .mah-drag-handle,
+  .mah-action-row:hover .mah-drag-handle { opacity:0.85; }
+
+  /* Remove button */
+  .mah-remove-btn {
+    display:flex;align-items:center;justify-content:center;
+    width:26px;height:26px;flex-shrink:0;padding:0;
+    border-radius:7px;border:1.5px solid rgba(220,38,38,0.18);
+    background:transparent;color:#e07070;font-size:15px;
+    font-weight:700;line-height:1;cursor:pointer;
+    opacity:0;transition:opacity 0.15s,background 0.12s,color 0.12s,border-color 0.12s;
+  }
+  .mah-attendee-card:hover .mah-remove-btn,
+  .mah-action-row:hover .mah-remove-btn { opacity:1; }
+  .mah-remove-btn:hover { background:#fee2e2;color:#dc2626;border-color:#fca5a5; }
+
+  /* Drag visual feedback */
+  .mah-attendee-card.drag-source { opacity:0.4; }
+  .mah-attendee-card.drag-over   { border-top:2.5px solid #c89b58 !important; }
+  .mah-action-row.drag-source > td { opacity:0.4; }
+  .mah-action-row.drag-over > td   { border-top:2.5px solid #c89b58; }
+
   /* ── Preview drawer ── */
   @keyframes mah-drawer-in  { from{transform:translateX(100%)} to{transform:translateX(0)} }
   @keyframes mah-drawer-out { from{transform:translateX(0)} to{transform:translateX(100%)} }
@@ -208,6 +239,19 @@ function SectionHead({ title }) {
     <div style={{ display:"flex",alignItems:"center",gap:"8px",marginBottom:"14px",paddingBottom:"10px",borderBottom:"1px solid #f0eff2" }}>
       <span style={sectionTitle}>{title}</span>
     </div>
+  );
+}
+
+function GripIcon() {
+  return (
+    <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden="true">
+      <circle cx="2.5" cy="2"  r="1.3"/>
+      <circle cx="7.5" cy="2"  r="1.3"/>
+      <circle cx="2.5" cy="7"  r="1.3"/>
+      <circle cx="7.5" cy="7"  r="1.3"/>
+      <circle cx="2.5" cy="12" r="1.3"/>
+      <circle cx="7.5" cy="12" r="1.3"/>
+    </svg>
   );
 }
 
@@ -311,11 +355,12 @@ function MahdarScreen({
   const [edit_location,           setLocation]           = useState(location);
   const [edit_next_meeting,       setNextMeeting]        = useState(next_meeting);
   const [edit_hijri_next_meeting, setHijriNextMeeting]   = useState(hijri_next_meeting);
-  const [edit_attendees,          setAttendees]          = useState(attendees);
+  const [edit_attendees,          setAttendees]          = useState(() => (attendees||[]).map((a,i) => ({...a, _id:i})));
   const [saved_attendees,         setSavedAttendees]     = useState([]);
   const [edit_discussion,         setDiscussion]         = useState(discussion);
   const [edit_decisions,          setDecisions]          = useState(decisions);
-  const [edit_actionItems,        setActionItems]        = useState(action_items);
+  const [edit_actionItems,        setActionItems]        = useState(() => (action_items||[]).map((a,i) => ({...a, _id:100+i})));
+  const [dragState,               setDragState]          = useState({ type: null, from: null, over: null });
 
   // Preview drawer state
   const [previewOpen,    setPreviewOpen]    = useState(false);
@@ -344,6 +389,36 @@ function MahdarScreen({
     });
   };
 
+  const removeAttendee   = (id) => setAttendees(list => list.filter(a => a._id !== id));
+  const removeActionItem = (id) => setActionItems(list => list.filter(a => a._id !== id));
+
+  const reorder = (list, from, to) => {
+    const next = [...list];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    return next;
+  };
+
+  const onDragStart = (type, index) => (e) => {
+    e.dataTransfer.effectAllowed = "move";
+    setDragState({ type, from: index, over: null });
+  };
+  const onDragOver = (type, index) => (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragState(s => s.over === index ? s : { ...s, over: index });
+  };
+  const onDrop = (type, index) => (e) => {
+    e.preventDefault();
+    const from = dragState.from;
+    if (from !== null && from !== index) {
+      if (type === "attendee") setAttendees(list => reorder(list, from, index));
+      else                     setActionItems(list => reorder(list, from, index));
+    }
+    setDragState({ type: null, from: null, over: null });
+  };
+  const onDragEnd = () => setDragState({ type: null, from: null, over: null });
+
   const handleExport = async () => {
     if (!template) return alert(t("mahdar.selectTemplateAlert"));
     const fd = new FormData();
@@ -351,11 +426,11 @@ function MahdarScreen({
     fd.append("date", edit_date);
     fd.append("title", edit_title);
     fd.append("location", edit_location);
-    fd.append("attendees", JSON.stringify(edit_attendees));
+    fd.append("attendees", JSON.stringify(edit_attendees.map(({_id, ...a}) => a)));
     fd.append("purpose", edit_purpose);
     fd.append("discussion", edit_discussion);
     fd.append("decisions", edit_decisions);
-    fd.append("action_items", JSON.stringify(edit_actionItems));
+    fd.append("action_items", JSON.stringify(edit_actionItems.map(({_id, ...a}) => a)));
     fd.append("next_meeting", edit_next_meeting);
     const res = await fetch(`${API}/export`, { method: "POST", body: fd });
     const blob = await res.blob();
@@ -385,8 +460,8 @@ function MahdarScreen({
     fd.append("decisions", edit_decisions || "");
     fd.append("next_meeting", edit_next_meeting || "");
     fd.append("hijri_next_meeting", edit_hijri_next_meeting || "");
-    fd.append("attendees", JSON.stringify(edit_attendees || []));
-    fd.append("action_items", JSON.stringify(edit_actionItems || []));
+    fd.append("attendees", JSON.stringify((edit_attendees || []).map(({_id, ...a}) => a)));
+    fd.append("action_items", JSON.stringify((edit_actionItems || []).map(({_id, ...a}) => a)));
     fd.append("token", token);
 
     try {
@@ -457,26 +532,60 @@ function MahdarScreen({
           <div style={card}>
             <SectionHead title={t("mahdar.attendeesSection")} />
             <div style={{ display:"flex",flexDirection:"column",gap:"8px" }}>
-              {edit_attendees.map((attendee, index) => (
-                <div key={index} className="mah-attendee-card" style={{ border:"1px solid #e8e7ea",borderRadius:"12px",padding:"14px",background:"#fafaf9" }}>
-                  <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:"10px" }}>
-                    <Field label={t("mahdar.fieldName")}  value={attendee.name}  onChange={v => updateAttendee(index, "name",  v)} />
-                    <Field label={t("mahdar.fieldEmail")} value={attendee.email} onChange={v => updateAttendee(index, "email", v)} />
-                    <Field label={t("mahdar.fieldRole")}  value={attendee.role}  onChange={v => updateAttendee(index, "role",  v)} />
+              {edit_attendees.map((attendee, index) => {
+                const isDragSource = dragState.type === "attendee" && dragState.from === index;
+                const isDragOver   = dragState.type === "attendee" && dragState.over === index && dragState.from !== index;
+                return (
+                  <div
+                    key={attendee._id}
+                    className={`mah-attendee-card${isDragSource ? " drag-source" : ""}${isDragOver ? " drag-over" : ""}`}
+                    style={{ display:"flex",alignItems:"flex-start",gap:"6px",border:"1px solid #e8e7ea",borderRadius:"12px",padding:"12px 14px",background:"#fafaf9" }}
+                    onDragOver={onDragOver("attendee", index)}
+                    onDrop={onDrop("attendee", index)}
+                    onDragEnd={onDragEnd}
+                  >
+                    {/* Drag handle */}
+                    <div
+                      className="mah-drag-handle"
+                      draggable="true"
+                      onDragStart={onDragStart("attendee", index)}
+                      style={{ marginTop:"4px" }}
+                    >
+                      <GripIcon />
+                    </div>
+
+                    {/* Card content */}
+                    <div style={{ flex:1,minWidth:0 }}>
+                      <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:"10px" }}>
+                        <Field label={t("mahdar.fieldName")}  value={attendee.name}  onChange={v => updateAttendee(index, "name",  v)} />
+                        <Field label={t("mahdar.fieldEmail")} value={attendee.email} onChange={v => updateAttendee(index, "email", v)} />
+                        <Field label={t("mahdar.fieldRole")}  value={attendee.role}  onChange={v => updateAttendee(index, "role",  v)} />
+                      </div>
+                      <div style={{ display:"flex",alignItems:"center",gap:"8px",marginTop:"10px",paddingTop:"10px",borderTop:"1px solid #f0eff2",flexWrap:"wrap" }}>
+                        <span style={{ fontSize:"11px",color:"#b0adb5",whiteSpace:"nowrap" }}>{t("mahdar.fieldOverride")}</span>
+                        <select className="mah-override-select" onChange={e => {
+                          const sel = saved_attendees.find(a => a.name === e.target.value);
+                          if (sel) { const u = [...edit_attendees]; u[index] = { ...u[index], name:sel.name, email:sel.email||"", role:sel.role||"" }; setAttendees(u); }
+                        }}>
+                          <option value="">{t("mahdar.fieldSavedAttendeePlaceholder")}</option>
+                          {saved_attendees.map((a, i) => <option key={i} value={a.name}>{a.name}</option>)}
+                        </select>
+                        <RememberButton onClick={() => saveAttendee(attendee)} />
+                      </div>
+                    </div>
+
+                    {/* Remove button */}
+                    <button
+                      className="mah-remove-btn"
+                      onClick={() => removeAttendee(attendee._id)}
+                      title={t("mahdar.removeAttendee")}
+                      style={{ marginTop:"2px" }}
+                    >
+                      ×
+                    </button>
                   </div>
-                  <div style={{ display:"flex",alignItems:"center",gap:"8px",marginTop:"10px",paddingTop:"10px",borderTop:"1px solid #f0eff2",flexWrap:"wrap" }}>
-                    <span style={{ fontSize:"11px",color:"#b0adb5",whiteSpace:"nowrap" }}>{t("mahdar.fieldOverride")}</span>
-                    <select className="mah-override-select" onChange={e => {
-                      const sel = saved_attendees.find(a => a.name === e.target.value);
-                      if (sel) { const u = [...edit_attendees]; u[index] = { name:sel.name, email:sel.email||"", role:sel.role||"" }; setAttendees(u); }
-                    }}>
-                      <option value="">{t("mahdar.fieldSavedAttendeePlaceholder")}</option>
-                      {saved_attendees.map((a, i) => <option key={i} value={a.name}>{a.name}</option>)}
-                    </select>
-                    <RememberButton onClick={() => saveAttendee(attendee)} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -499,18 +608,33 @@ function MahdarScreen({
               <table style={{ width:"100%",borderCollapse:"collapse" }}>
                 <thead>
                   <tr>
+                    <th style={{ ...th,width:"28px",padding:"10px 6px" }}></th>
                     <th style={{ ...th,width:"36px" }}>{t("mahdar.fieldNumber")}</th>
                     <th style={th}>{t("mahdar.fieldTask")}</th>
                     <th style={th}>{t("mahdar.fieldOwner")}</th>
                     <th style={th}>{t("mahdar.fieldDeadline")}</th>
+                    <th style={{ ...th,width:"28px",padding:"10px 6px" }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {edit_actionItems.map((item, index) => {
-                    const isLast = index === edit_actionItems.length - 1;
-                    const cellStyle = { ...td, borderBottom: isLast ? "none" : "1px solid #f0eff2" };
+                    const isLast       = index === edit_actionItems.length - 1;
+                    const isDragSource = dragState.type === "action" && dragState.from === index;
+                    const isDragOver   = dragState.type === "action" && dragState.over === index && dragState.from !== index;
+                    const cellStyle    = { ...td, borderBottom: isLast ? "none" : "1px solid #f0eff2" };
                     return (
-                      <tr key={index} className="mah-action-row">
+                      <tr
+                        key={item._id}
+                        className={`mah-action-row${isDragSource ? " drag-source" : ""}${isDragOver ? " drag-over" : ""}`}
+                        onDragOver={onDragOver("action", index)}
+                        onDrop={onDrop("action", index)}
+                        onDragEnd={onDragEnd}
+                      >
+                        <td style={{ ...cellStyle,width:"28px",padding:"10px 6px",textAlign:"center" }}>
+                          <div className="mah-drag-handle" draggable="true" onDragStart={onDragStart("action", index)}>
+                            <GripIcon />
+                          </div>
+                        </td>
                         <td style={{ ...cellStyle,color:"#c4bfca",fontSize:"12px",fontFamily:"ui-monospace,Consolas,monospace",textAlign:"center" }}>
                           {index + 1}
                         </td>
@@ -524,6 +648,9 @@ function MahdarScreen({
                             />
                           </td>
                         ))}
+                        <td style={{ ...cellStyle,width:"28px",padding:"10px 6px",textAlign:"center" }}>
+                          <button className="mah-remove-btn" onClick={() => removeActionItem(item._id)} title={t("mahdar.removeAction")}>×</button>
+                        </td>
                       </tr>
                     );
                   })}
