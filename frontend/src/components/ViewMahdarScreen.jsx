@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import supabase from "../supabase";
 import MahdarScreen from "./MahdarScreen";
 import { useLanguage } from "../i18n/LanguageContext";
+import MahdarLoader from "./MahdarLoader";
 
 function ViewMahdarScreen() {
   const { t } = useLanguage();
@@ -103,9 +104,8 @@ function ViewMahdarScreen() {
   if (loading)
     return (
       <div style={styles.statusWrapper}>
-        <div style={styles.spinner} />
+        <MahdarLoader size="md" />
         <p style={styles.statusText}>{t("viewMahdar.loading")}</p>
-        <style>{spinKeyframes}</style>
       </div>
     );
 
@@ -203,10 +203,6 @@ function ViewMahdarScreen() {
     </div>
   );
 }
-
-const spinKeyframes = `
-@keyframes mh-spin { to { transform: rotate(360deg); } }
-`;
 
 const styles = {
   page: {
@@ -328,14 +324,6 @@ const styles = {
     fontSize: "14px",
     color: "#888",
     margin: 0,
-  },
-  spinner: {
-    width: "22px",
-    height: "22px",
-    border: "2.5px solid #e8e7ea",
-    borderTopColor: "#1D9E75",
-    borderRadius: "50%",
-    animation: "mh-spin 0.7s linear infinite",
   },
   retryBtn: {
     fontSize: "13px",

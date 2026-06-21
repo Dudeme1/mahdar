@@ -3,6 +3,7 @@ import supabase from "../supabase";
 import MahdarScreen from "./MahdarScreen";
 import logoUrl from "/icon-512.png";
 import { useLanguage } from "../i18n/LanguageContext";
+import MahdarLoader from "./MahdarLoader";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap');
@@ -464,6 +465,9 @@ const css = `
 
   /* Generating status */
   .ms-gen-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 12px;
     color: #9a9387;
     font-style: italic;
@@ -997,7 +1001,10 @@ function UploadScreen() {
 
           {/* Generating status */}
           {loading && generatingStatus && (
-            <p className="ms-gen-status">{generatingStatus}</p>
+            <p className="ms-gen-status">
+              <MahdarLoader size="sm" />
+              {generatingStatus}
+            </p>
           )}
 
           {/* Template row */}

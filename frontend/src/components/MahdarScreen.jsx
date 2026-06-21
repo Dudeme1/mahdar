@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../i18n/LanguageContext";
+import MahdarLoader from "./MahdarLoader";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
@@ -278,7 +279,7 @@ function PreviewDrawer({ html, loading, onClose }) {
         <div style={{ flex:1,overflowY:"auto",display:"flex",flexDirection:"column" }}>
           {loading && (
             <div style={{ display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flex:1,gap:"14px",padding:"60px 20px" }}>
-              <div className="mah-spinner-lg" />
+              <MahdarLoader size="lg" />
               <div style={{ fontSize:"13px",color:"#888",fontFamily:"DM Sans,sans-serif" }}>{t("mahdar.generatingPreview")}</div>
             </div>
           )}

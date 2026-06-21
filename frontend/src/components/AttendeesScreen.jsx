@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import supabase from "../supabase";
 import { useLanguage } from "../i18n/LanguageContext";
+import MahdarLoader from "./MahdarLoader";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
@@ -324,7 +325,7 @@ function AttendeesScreen() {
         color: "#7a7585", background: "#f4f5f2",
         fontSize: "13px",
       }}>
-        <div className="att-spinner" />
+        <MahdarLoader size="sm" />
         {t("attendees.loadingText")}
       </div>
     </>

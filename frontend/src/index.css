@@ -125,3 +125,13 @@ body,
   min-height: 100%;
   background: #f4f5f2;
 }
+
+/* ── Mahdar loader icon animation ── */
+@keyframes mhl-shimmer {
+  0%, 100% { opacity: 0.18; }
+  50%       { opacity: 1;    }
+}
+.mhl-r1  { animation: mhl-shimmer 1.8s ease-in-out infinite 0.00s both; }
+.mhl-r2  { animation: mhl-shimmer 1.8s ease-in-out infinite 0.22s both; }
+.mhl-r3  { animation: mhl-shimmer 1.8s ease-in-out infinite 0.42s both; }
+.mhl-dot { animation: mhl-shimmer 1.8s ease-in-out infinite 0.55s both; }

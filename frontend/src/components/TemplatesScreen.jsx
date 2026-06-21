@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import supabase from "../supabase";
 import { useLanguage } from "../i18n/LanguageContext";
+import MahdarLoader from "./MahdarLoader";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const SIMPLE_VARS = [
@@ -435,7 +436,7 @@ function PreviewDrawer({ html, loading, error, templateName, onClose }) {
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
           {loading && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, gap: "14px", padding: "60px 20px" }}>
-              <div className="tmpl-spinner-lg" />
+              <MahdarLoader size="lg" />
               <div style={{ fontSize: "13px", color: "#888", fontFamily: "DM Sans, sans-serif" }}>{t("templates.previewGenerating")}</div>
             </div>
           )}
@@ -645,7 +646,7 @@ function TemplatesScreen({ user }) {
   if (loading) return (
     <><style>{css}</style>
       <div style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:"10px",height:"100vh",fontFamily:"DM Sans,sans-serif",color:"#7a7585",background:"#f4f5f2",fontSize:"13px" }}>
-        <div className="tmpl-spinner" /> {t("templates.loadingText")}
+        <MahdarLoader size="sm" /> {t("templates.loadingText")}
       </div>
     </>
   );
@@ -688,7 +689,7 @@ function TemplatesScreen({ user }) {
                 <div className={`tmpl-file-zone${newFile?" has-file":""}`} onClick={() => fileRef.current?.click()} style={{ marginBottom:"12px" }}>
                   {scanning ? (
                     <div style={{ display:"flex",alignItems:"center",gap:"8px" }}>
-                      <div className="tmpl-spinner" />
+                      <MahdarLoader size="sm" />
                       <span style={{ fontSize:"12px",color:"#888",fontFamily:"DM Sans,sans-serif" }}>{t("templates.uploadScanning")}</span>
                     </div>
                   ) : newFile ? (
