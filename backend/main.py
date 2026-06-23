@@ -176,10 +176,9 @@ def str_to_richtext(text: str) -> RichText:
     rt = RichText()
     lines = [l for l in text.split('\n') if l.strip()]
     for i, line in enumerate(lines):
+        rt.add(line)
         if i < len(lines) - 1:
-            rt.add(line, break_=True)
-        else:
-            rt.add(line)
+            rt.xml += '<w:r><w:br/></w:r>'
     return rt
 
 def patch_docx_richtext(template_bytes: bytes, vars: list) -> bytes:
@@ -624,6 +623,7 @@ async def preview_mahdar(
 async def export(
     template: UploadFile = File(...),
     date: str = Form(""),
+    hijri_date: str = Form(""),
     title: str = Form(""),
     location: str = Form(""),
     attendees: str = Form(""),
@@ -631,7 +631,8 @@ async def export(
     discussion: str = Form(""),
     decisions: str = Form(""),
     action_items: str = Form(""),
-    next_meeting: str = Form("")
+    next_meeting: str = Form(""),
+    hijri_next_meeting: str = Form("")
 ):
     template_bytes = await template.read()
 
@@ -649,19 +650,21 @@ async def export(
 
     context = {
         "date": date,
+        "hijri_date": hijri_date,
         "title": title,
         "location": location,
-        "attendees": json.loads(attendees),
+        "attendees": json.loads(attendees) if attendees else [],
         "purpose": purpose,
         "discussion": str_to_richtext(discussion),
         "decisions": str_to_richtext(decisions),
-        "action_items": json.loads(action_items),
-        "next_meeting": next_meeting
+        "action_items": json.loads(action_items) if action_items else [],
+        "next_meeting": next_meeting,
+        "hijri_next_meeting": hijri_next_meeting,
     }
-    
+
     doc.render(context)
     doc.save(output_path)
-    
+
     return FileResponse(
         output_path,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",

@@ -102,6 +102,16 @@ const css = `
   .mah-preview-btn.open { background: #1a2e22; border-color: #1a2e22; color: #fff; }
   .mah-preview-btn.open:hover { background: #253d2e; }
 
+  /* Hide-report button */
+  .mah-hide-btn {
+    display:flex;align-items:center;justify-content:center;
+    width:32px;height:32px;flex-shrink:0;
+    border-radius:8px;border:1px solid #e8e7ea;
+    background:#fff;color:#8a849a;cursor:pointer;
+    transition:background 0.12s,color 0.12s,border-color 0.12s;
+  }
+  .mah-hide-btn:hover { background:#f4f3f6;color:#1a2e22;border-color:#d0ccd8; }
+
   /* Action item row/input */
   .mah-action-row { transition: background 0.12s; }
   .mah-action-row:hover { background: #faf9f7; }
@@ -345,7 +355,7 @@ function PreviewDrawer({ html, loading, onClose }) {
 function MahdarScreen({
   token, date, hijri_date, title, purpose, location,
   attendees, discussion, decisions, action_items,
-  next_meeting, hijri_next_meeting, template,
+  next_meeting, hijri_next_meeting, template, onHide,
 }) {
   const { t } = useLanguage();
   const [edit_date,               setDate]               = useState(date);
@@ -423,20 +433,31 @@ function MahdarScreen({
     if (!template) return alert(t("mahdar.selectTemplateAlert"));
     const fd = new FormData();
     fd.append("template", template);
-    fd.append("date", edit_date);
-    fd.append("title", edit_title);
-    fd.append("location", edit_location);
+    fd.append("date", edit_date || "");
+    fd.append("hijri_date", edit_hijri_date || "");
+    fd.append("title", edit_title || "");
+    fd.append("location", edit_location || "");
     fd.append("attendees", JSON.stringify(edit_attendees.map(({_id, ...a}) => a)));
-    fd.append("purpose", edit_purpose);
-    fd.append("discussion", edit_discussion);
-    fd.append("decisions", edit_decisions);
+    fd.append("purpose", edit_purpose || "");
+    fd.append("discussion", edit_discussion || "");
+    fd.append("decisions", edit_decisions || "");
     fd.append("action_items", JSON.stringify(edit_actionItems.map(({_id, ...a}) => a)));
-    fd.append("next_meeting", edit_next_meeting);
-    const res = await fetch(`${API}/export`, { method: "POST", body: fd });
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `mahdar_${new Date().toISOString()}.docx`; a.click();
+    fd.append("next_meeting", edit_next_meeting || "");
+    fd.append("hijri_next_meeting", edit_hijri_next_meeting || "");
+    try {
+      const res = await fetch(`${API}/export`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return alert(err.detail || err.error || t("mahdar.exportError"));
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `mahdar_${new Date().toISOString()}.docx`; a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert(t("mahdar.exportError"));
+    }
   };
 
   // Build preview HTML with real meeting data filled in
@@ -498,6 +519,13 @@ function MahdarScreen({
             </div>
           </div>
           <div style={{ display:"flex",gap:"8px",alignItems:"center" }}>
+            {onHide && (
+              <button className="mah-hide-btn" onClick={onHide} title={t("mahdar.hideReport")}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+            )}
             <button
               className={`mah-preview-btn${previewOpen ? " open" : ""}`}
               onClick={handlePreview}

@@ -463,6 +463,26 @@ const css = `
     font-weight: 600;
   }
 
+  /* View-report banner (shown when report is hidden) */
+  .ms-report-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: #f0fdf4; border: 1px solid #bbf7d0;
+    border-radius: 12px; padding: 10px 16px;
+    margin-top: 8px; animation: fadein 0.2s ease;
+  }
+  .ms-report-banner-text {
+    font-size: 12.5px; font-weight: 600; color: #15803d; display: flex; align-items: center; gap: 6px;
+  }
+  .ms-report-banner-btn {
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px; font-weight: 700; color: #16a34a;
+    background: none; border: 1px solid #86efac;
+    border-radius: 20px; padding: 5px 14px;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: background 0.12s;
+  }
+  .ms-report-banner-btn:hover { background: #dcfce7; }
+
   /* Generating status */
   .ms-gen-status {
     display: flex;
@@ -574,6 +594,7 @@ function UploadScreen() {
   const [loading, setLoading]               = useState(false);
   const [generatingStatus, setGeneratingStatus] = useState("");
   const [mom, setMom]                       = useState(null);
+  const [reportVisible, setReportVisible]   = useState(false);
   const [outputLanguage, setOutputLanguage] = useState("english");
   const [limitReached, setLimitReached]     = useState(false);
   const [limitMessage, setLimitMessage]     = useState("");
@@ -797,6 +818,7 @@ function UploadScreen() {
 
         setGeneratingStatus(t("upload.statusDone"));
         setMom(gen_data);
+        setReportVisible(true);
       }
     } catch (err) {
       console.error(err);
@@ -833,10 +855,10 @@ function UploadScreen() {
       <style>{css}</style>
       <div className="ms-root">
 
-        <div className={mom ? "ms-two-col" : "ms-body"}>
+        <div className={mom && reportVisible ? "ms-two-col" : "ms-body"}>
 
-          {/* Left column wrap when mom is active */}
-          <div className={mom ? "ms-left-col" : ""}>
+          {/* Left column wrap when report is visible */}
+          <div className={mom && reportVisible ? "ms-left-col" : ""}>
 
           {/* Greeting */}
           <div className="ms-greeting">
@@ -1007,6 +1029,21 @@ function UploadScreen() {
             </p>
           )}
 
+          {/* Banner to re-open hidden report */}
+          {mom && !reportVisible && (
+            <div className="ms-report-banner">
+              <span className="ms-report-banner-text">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {t("upload.reportReady")}
+              </span>
+              <button className="ms-report-banner-btn" onClick={() => setReportVisible(true)}>
+                {t("upload.viewReport")} →
+              </button>
+            </div>
+          )}
+
           {/* Template row */}
           <div className="ms-template-row">
             <span className="ms-template-label">{t("upload.templateLabel")}</span>
@@ -1063,7 +1100,7 @@ function UploadScreen() {
           </div>{/* end left col */}
 
           {/* Right column — MahdarScreen */}
-          {mom && (
+          {mom && reportVisible && (
             <div className="ms-right-col">
               <MahdarScreen
                 token={token}
@@ -1079,6 +1116,7 @@ function UploadScreen() {
                 next_meeting={mom.next_meeting}
                 hijri_next_meeting={mom.hijri_next_meeting}
                 template={template}
+                onHide={() => setReportVisible(false)}
               />
             </div>
           )}
