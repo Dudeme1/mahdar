@@ -166,6 +166,18 @@ const css = `
   .mah-preview-btn.open { background: #1a2e22; border-color: #1a2e22; color: #fff; }
   .mah-preview-btn.open:hover { background: #253d2e; }
 
+  /* New Mahdar button */
+  .mah-new-btn {
+    display:flex;align-items:center;justify-content:center;gap:5px;
+    height:32px;padding:0 12px;
+    border-radius:8px;border:1px solid #e8e7ea;
+    background:#f8f7f5;color:#7a7585;font-size:12px;font-weight:600;
+    font-family:'DM Sans',system-ui,sans-serif;letter-spacing:0.02em;
+    cursor:pointer;transition:background 0.12s,color 0.12s,border-color 0.12s;
+    flex-shrink:0;white-space:nowrap;
+  }
+  .mah-new-btn:hover { background:#f0eef4;color:#1a2e22;border-color:#ccc8d4; }
+
   /* Hide-report button */
   .mah-hide-btn {
     display:flex;align-items:center;justify-content:center;
@@ -531,7 +543,7 @@ function MahdarScreen({
   token, date, hijri_date, title, purpose, location,
   attendees, discussion, decisions, action_items,
   next_meeting, hijri_next_meeting, template, onHide,
-  mahdarId, initialTags,
+  mahdarId, initialTags, onNewMahdar,
 }) {
   const { t } = useLanguage();
   const [edit_date,               setDate]               = useState(date);
@@ -695,6 +707,15 @@ function MahdarScreen({
             </div>
           </div>
           <div style={{ display:"flex",gap:"8px",alignItems:"center" }}>
+            {onNewMahdar && (
+              <button className="mah-new-btn" onClick={onNewMahdar} title={t("mahdar.newMahdar")}>
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <line x1="5.5" y1="1" x2="5.5" y2="10" />
+                  <line x1="1" y1="5.5" x2="10" y2="5.5" />
+                </svg>
+                {t("mahdar.newMahdar")}
+              </button>
+            )}
             {onHide && (
               <button className="mah-hide-btn" onClick={onHide} title={t("mahdar.hideReport")}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

@@ -16,6 +16,8 @@ import TagsScreen from "./components/TagsScreen";
 function App() {
   const [ user, setUser ] = useState(null);
   const [ loading, setLoading ] = useState(true);
+  const [ newMahdarKey, setNewMahdarKey ] = useState(0);
+  const handleNewMahdar = () => setNewMahdarKey(k => k + 1);
 
   // This will run only once when the app starts
   useEffect(() => {
@@ -56,14 +58,14 @@ function App() {
     <LanguageProvider>
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={!user ? <Layout user={user}><LoginScreen setUser={setUser} /></Layout> : <Navigate to="/dashboard" />} />
-        <Route path="/dashboard" element={user ? <Layout user={user}><UploadScreen user={user} /></Layout> : <Navigate to="/login" />} />
-        <Route path="/attendees" element={user ? <Layout user={user}><AttendeesScreen user={user} /></Layout> : <Navigate to="/login" />} />
-        <Route path="/templates" element={user ? <Layout user={user}><TemplatesScreen user={user} /></Layout> : <Navigate to="/login" />} />
-        <Route path="/history" element={user ? <Layout user={user}><MahdarsHistoryScreen user={user} /></Layout> : <Navigate to="/login" />} />
-        <Route path="/tags" element={user ? <Layout user={user}><TagsScreen user={user} /></Layout> : <Navigate to="/login" />} />
-        <Route path="/subscription" element={user ? <Layout user={user}><SubscriptionScreen user={user} /></Layout> : <Navigate to="/login" />} />
-        <Route path="/mahdar/:id" element={user ? <Layout><ViewMahdarScreen /></Layout> : <Navigate to="/login" />} />
+        <Route path="/login" element={!user ? <Layout user={user} onNewMahdar={handleNewMahdar}><LoginScreen setUser={setUser} /></Layout> : <Navigate to="/dashboard" />} />
+        <Route path="/dashboard" element={user ? <Layout user={user} onNewMahdar={handleNewMahdar}><UploadScreen user={user} key={newMahdarKey} /></Layout> : <Navigate to="/login" />} />
+        <Route path="/attendees" element={user ? <Layout user={user} onNewMahdar={handleNewMahdar}><AttendeesScreen user={user} /></Layout> : <Navigate to="/login" />} />
+        <Route path="/templates" element={user ? <Layout user={user} onNewMahdar={handleNewMahdar}><TemplatesScreen user={user} /></Layout> : <Navigate to="/login" />} />
+        <Route path="/history" element={user ? <Layout user={user} onNewMahdar={handleNewMahdar}><MahdarsHistoryScreen user={user} /></Layout> : <Navigate to="/login" />} />
+        <Route path="/tags" element={user ? <Layout user={user} onNewMahdar={handleNewMahdar}><TagsScreen user={user} /></Layout> : <Navigate to="/login" />} />
+        <Route path="/subscription" element={user ? <Layout user={user} onNewMahdar={handleNewMahdar}><SubscriptionScreen user={user} /></Layout> : <Navigate to="/login" />} />
+        <Route path="/mahdar/:id" element={user ? <Layout onNewMahdar={handleNewMahdar}><ViewMahdarScreen /></Layout> : <Navigate to="/login" />} />
         <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
       </Routes>
     </BrowserRouter>

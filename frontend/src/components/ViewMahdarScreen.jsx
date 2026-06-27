@@ -199,6 +199,7 @@ function ViewMahdarScreen() {
             token={token}
             mahdarId={mahdar.id}
             initialTags={mahdar.tags || []}
+            onNewMahdar={() => navigate("/dashboard")}
           />
         </div>
       </div>

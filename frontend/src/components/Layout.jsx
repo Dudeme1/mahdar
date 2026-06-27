@@ -337,7 +337,7 @@ const ACCOUNT_ITEMS = [
   { key: "subscription", icon: "/subscription_icon.png", path: "/subscription" },
 ];
 
-function Layout({ children, user }) {
+function Layout({ children, user, onNewMahdar }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, isRTL, language, setLanguage } = useLanguage();
@@ -345,7 +345,11 @@ function Layout({ children, user }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleSignout = async () => { await supabase.auth.signOut(); };
-  const handleNav = (path) => { navigate(path); setMobileOpen(false); };
+  const handleNav = (path) => {
+    if (path === "/dashboard") onNewMahdar?.();
+    navigate(path);
+    setMobileOpen(false);
+  };
   const toggleLanguage = () => setLanguage(language === "en" ? "ar" : "en");
 
   const sidebarWidth   = collapsed ? "58px" : "220px";

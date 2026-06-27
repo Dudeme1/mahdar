@@ -70,9 +70,9 @@ const css = `
   .ms-signout:hover { color: #3a3530; border-color: #b8b2a6; }
 
   .ms-body {
-    max-width: 700px;
+    max-width: 820px;
     margin: 0 auto;
-    padding: 40px 24px;
+    padding: 44px 28px;
     width: 100%;
     flex: 1;
     display: flex;
@@ -85,9 +85,9 @@ const css = `
     height: calc(100vh - 61px);
   }
   .ms-left-col {
-    width: 460px; flex-shrink: 0;
+    width: 520px; flex-shrink: 0;
     height: 100%; overflow-y: auto;
-    padding: 32px 24px 48px;
+    padding: 36px 28px 52px;
     border-right: 1px solid #e4e0d8;
   }
   .ms-right-col {
@@ -102,11 +102,11 @@ const css = `
   }
 
   /* Greeting */
-  .ms-greeting { margin-bottom: 28px; }
-  .ms-greeting-line { font-size: 13px; color: #9a9387; letter-spacing: 0.03em; margin: 0 0 4px; }
+  .ms-greeting { margin-bottom: 32px; }
+  .ms-greeting-line { font-size: 15px; color: #9a9387; letter-spacing: 0.03em; margin: 0 0 5px; }
   .ms-greeting-title {
     font-family: 'Fraunces', serif;
-    font-size: 30px; font-weight: 500;
+    font-size: 36px; font-weight: 500;
     color: #1c1c18; letter-spacing: -0.3px;
     margin: 0; line-height: 1.25;
   }
@@ -128,14 +128,14 @@ const css = `
 
   /* Mic section */
   .ms-mic-section {
-    width: 116px;
+    width: 130px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    padding: 36px 16px;
+    padding: 40px 18px;
     background: #f7f6f3;
     border-inline-end: 1px solid #e4e0d8;
   }
@@ -147,15 +147,15 @@ const css = `
   }
   .ms-mic-ring {
     position: absolute;
-    width: 100px; height: 100px;
-    border-radius: 22px;
+    width: 112px; height: 112px;
+    border-radius: 24px;
     background: rgba(176,125,58,0.18);
     animation: pulse-ring 1.6s ease-out infinite;
     pointer-events: none;
   }
   .ms-mic-btn {
-    width: 82px; height: 82px;
-    border-radius: 18px;
+    width: 92px; height: 92px;
+    border-radius: 20px;
     border: none;
     cursor: pointer;
     display: flex;
@@ -169,7 +169,7 @@ const css = `
   }
   .ms-mic-btn:hover { transform: scale(1.04); box-shadow: 0 5px 16px rgba(28,28,24,0.28); }
   .ms-mic-btn svg {
-    width: 30px; height: 30px;
+    width: 34px; height: 34px;
     fill: none; stroke: #fff;
     stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   }
@@ -181,14 +181,14 @@ const css = `
   .ms-mic-btn.transcribing:hover { transform: none; }
 
   .ms-mic-label {
-    font-size: 11px; font-weight: 700;
+    font-size: 13px; font-weight: 700;
     color: #9a9387; letter-spacing: 0.02em;
     text-align: center; line-height: 1.3;
     white-space: nowrap;
   }
   .ms-mic-label.recording { color: #b07d3a; }
   .ms-rec-timer {
-    font-size: 13px; color: #b07d3a;
+    font-size: 15px; color: #b07d3a;
     font-weight: 700; letter-spacing: 0.08em;
   }
   .ms-transcribing-row {
@@ -211,7 +211,7 @@ const css = `
   }
   textarea.ms-input {
     width: 100%;
-    min-height: 108px;
+    min-height: 124px;
     height: 100%;
     padding: 12px 14px;
     border: 1px solid #e4e0d8;
@@ -240,7 +240,7 @@ const css = `
   }
   .ms-generate-btn {
     font-family: 'Nunito', system-ui, sans-serif;
-    font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+    font-size: 14px; font-weight: 700; letter-spacing: 0.04em;
     background: #1c1c18; color: #fff;
     border: none; border-radius: 20px;
     padding: 10px 22px; cursor: pointer;
@@ -339,9 +339,9 @@ const css = `
 
   /* Generating status */
   .ms-gen-status {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 12px; color: #9a9387; font-style: italic;
-    margin: 8px 0 0; animation: fadein 0.2s ease;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 14px; color: #9a9387; font-style: italic;
+    margin: 10px 0 0; animation: fadein 0.2s ease;
   }
 
   /* Limit modal */
@@ -932,6 +932,15 @@ function UploadScreen() {
                 onHide={() => setReportVisible(false)}
                 mahdarId={mom.mahdar_id}
                 initialTags={templateTags.length > 0 ? templateTags : (mom.initial_tags || [])}
+                onNewMahdar={() => {
+                  setMom(null);
+                  setTextInput("");
+                  setAudioFile(null);
+                  setReportVisible(false);
+                  setTemplate(null);
+                  setSelectedTemplateUrl(null);
+                  setTemplateTags([]);
+                }}
               />
             </div>
           )}

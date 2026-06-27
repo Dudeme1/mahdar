@@ -134,6 +134,7 @@ export const translations = {
       fieldNumber: "#",
       selectTemplateAlert: "Please select a template to export.",
       exportError: "Export failed. Please try again.",
+      newMahdar: "New Mahdar",
     },
     attendees: {
       title: "Attendees",
@@ -483,6 +484,7 @@ export const translations = {
       fieldNumber: "#",
       selectTemplateAlert: "يُرجى اختيار قالب للتصدير.",
       exportError: "فشل التصدير. يُرجى المحاولة مرة أخرى.",
+      newMahdar: "محضر جديد",
     },
     attendees: {
       title: "الحضور",
