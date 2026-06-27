@@ -29,7 +29,7 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 import time
 from hijri_converter import Gregorian
-from docxtpl import DocxTemplate, RichText
+from docxtpl import DocxTemplate
 import tempfile
 import os
 
@@ -152,6 +152,42 @@ def match_attendee(name: str, saved_attendees: list, threshold: int = 75):
 
 import time
 
+# ─── Template preprocessor ────────────────────────────────────────────────────
+def fix_bare_table_loops(template_bytes: bytes) -> bytes:
+    """
+    Upgrade bare {% for x in y %} / {% endfor %} tags that are the sole text
+    content of a table row to {%tr for x in y %} / {%tr endfor %}.
+
+    docxtpl removes the entire <w:tr> for {%tr ...} loop-marker rows, so no
+    blank row appears in the output. Without this, templates that use the plain
+    {% %} form keep their row structure alive and produce an empty row between
+    every repeated data row.
+    """
+    buf = io.BytesIO()
+    with zipfile.ZipFile(io.BytesIO(template_bytes)) as zin:
+        with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                data = zin.read(item.filename)
+                if item.filename == 'word/document.xml':
+                    xml = data.decode('utf-8', errors='replace')
+
+                    def upgrade_loop_row(m):
+                        row = m.group(0)
+                        if '{%tr ' in row:
+                            return row
+                        plain = re.sub(r'<[^>]+>', '', row)
+                        plain = re.sub(r'\s+', ' ', plain).strip()
+                        if re.match(r'^\{%-?\s*(?:for\s+\w+\s+in\s+[\w.]+|endfor)\s*-?%\}$', plain):
+                            row = row.replace('{%', '{%tr', 1)
+                        return row
+
+                    xml = re.sub(r'<w:tr[ >].*?</w:tr>', upgrade_loop_row, xml, flags=re.DOTALL)
+                    data = xml.encode('utf-8')
+                zout.writestr(item, data)
+    buf.seek(0)
+    return buf.read()
+
+
 # ─── Filename sanitizer ────────────────────────────────────────────────────────
 def sanitize_filename(filename: str) -> str:
     """Return a Supabase-storage-safe filename: ASCII-only, no spaces, safe chars."""
@@ -168,39 +204,6 @@ def sanitize_filename(filename: str) -> str:
         name = f"file_{int(time.time())}"
     return name + ext
 
-# ─── Rich-text helpers for Word export ────────────────────────────────────────
-def str_to_richtext(text: str) -> RichText:
-    """Convert a newline-separated string into a docxtpl RichText with Word line breaks."""
-    if not text or not text.strip():
-        return RichText('')
-    rt = RichText()
-    lines = [l for l in text.split('\n') if l.strip()]
-    for i, line in enumerate(lines):
-        rt.add(line)
-        if i < len(lines) - 1:
-            rt.xml += '<w:r><w:br/></w:r>'
-    return rt
-
-def patch_docx_richtext(template_bytes: bytes, vars: list) -> bytes:
-    """Pre-process a .docx template: replace {{ var }} with {{ r var }} in document.xml
-    so that RichText objects (with line breaks) are rendered correctly by docxtpl."""
-    buf = io.BytesIO()
-    with zipfile.ZipFile(io.BytesIO(template_bytes)) as zin:
-        with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zout:
-            for item in zin.infolist():
-                data = zin.read(item.filename)
-                if item.filename == 'word/document.xml':
-                    xml = data.decode('utf-8', errors='replace')
-                    for var in vars:
-                        xml = re.sub(
-                            r'\{\{\s*' + re.escape(var) + r'\s*\}\}',
-                            '{{ r ' + var + ' }}',
-                            xml
-                        )
-                    data = xml.encode('utf-8')
-                zout.writestr(item, data)
-    buf.seek(0)
-    return buf.read()
 
 def call_claude_with_retry(claude, messages, model, max_tokens, max_retries=3):
     for attempt in range(max_retries):
@@ -635,10 +638,7 @@ async def export(
     hijri_next_meeting: str = Form("")
 ):
     template_bytes = await template.read()
-
-    # Patch {{ discussion }} / {{ decisions }} → {{ r discussion }} / {{ r decisions }}
-    # so that RichText line breaks are rendered correctly in Word.
-    template_bytes = patch_docx_richtext(template_bytes, ["discussion", "decisions"])
+    template_bytes = fix_bare_table_loops(template_bytes)
 
     tmp_path = "temp_template.docx"
     output_path = "temp_output.docx"
@@ -655,8 +655,8 @@ async def export(
         "location": location,
         "attendees": json.loads(attendees) if attendees else [],
         "purpose": purpose,
-        "discussion": str_to_richtext(discussion),
-        "decisions": str_to_richtext(decisions),
+        "discussion": discussion,
+        "decisions": decisions,
         "action_items": json.loads(action_items) if action_items else [],
         "next_meeting": next_meeting,
         "hijri_next_meeting": hijri_next_meeting,

@@ -12,9 +12,9 @@ const css = `
 
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes pulse-ring {
-    0%   { transform: scale(1);    opacity: .5; }
-    70%  { transform: scale(1.52); opacity: 0;  }
-    100% { transform: scale(1.52); opacity: 0;  }
+    0%   { transform: scale(1);    opacity: .45; }
+    70%  { transform: scale(1.55); opacity: 0;   }
+    100% { transform: scale(1.55); opacity: 0;   }
   }
   @keyframes ts-bounce {
     0%, 80%, 100% { transform: scale(.55); opacity: .35; }
@@ -26,8 +26,8 @@ const css = `
   }
 
   .ms-spinner {
-    width: 14px; height: 14px;
-    border: 1.5px solid rgba(255,255,255,0.25);
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.25);
     border-top-color: #fff;
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
@@ -39,7 +39,8 @@ const css = `
     background: #f7f6f3;
     font-family: 'Nunito', system-ui, sans-serif;
     color: #3a3530;
-    padding: 0 0 80px;
+    display: flex;
+    flex-direction: column;
   }
 
   .ms-header {
@@ -50,65 +51,49 @@ const css = `
     align-items: center;
     justify-content: space-between;
   }
-  .ms-logo-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .ms-logo-img {
-    width: 28px; height: 28px;
-    border-radius: 6px;
-  }
+  .ms-logo-row { display: flex; align-items: center; gap: 10px; }
+  .ms-logo-img { width: 28px; height: 28px; border-radius: 6px; }
   .ms-logo-text {
     font-family: 'Fraunces', serif;
-    font-size: 20px;
-    font-weight: 500;
-    color: #1c1c18;
-    letter-spacing: -0.2px;
+    font-size: 20px; font-weight: 500;
+    color: #1c1c18; letter-spacing: -0.2px;
   }
   .ms-logo-text span { color: #b07d3a; }
 
   .ms-signout {
     font-family: 'Nunito', system-ui, sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    color: #9a9387;
-    background: none;
-    border: 1px solid #ddd9d0;
-    border-radius: 20px;
-    padding: 5px 14px;
-    cursor: pointer;
-    letter-spacing: 0.01em;
-    transition: color 0.15s, border-color 0.15s;
+    font-size: 12px; font-weight: 600; color: #9a9387;
+    background: none; border: 1px solid #ddd9d0;
+    border-radius: 20px; padding: 5px 14px; cursor: pointer;
+    letter-spacing: 0.01em; transition: color 0.15s, border-color 0.15s;
   }
   .ms-signout:hover { color: #3a3530; border-color: #b8b2a6; }
 
-  .ms-body { max-width: 680px; margin: 0 auto; padding: 40px 24px 0; }
-  /* Two-column layout when report is visible */
-  .ms-two-col {
+  .ms-body {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    width: 100%;
+    flex: 1;
     display: flex;
-    align-items: flex-start;
-    gap: 0;
-    max-width: 100%;
-    padding: 0;
-    height: calc(100vh - 61px); /* subtract header height */
+    flex-direction: column;
+    justify-content: center;
+  }
+  .ms-two-col {
+    display: flex; align-items: flex-start; gap: 0;
+    max-width: 100%; padding: 0;
+    height: calc(100vh - 61px);
   }
   .ms-left-col {
-    width: 440px;
-    flex-shrink: 0;
-    height: 100%;
-    overflow-y: auto;
+    width: 460px; flex-shrink: 0;
+    height: 100%; overflow-y: auto;
     padding: 32px 24px 48px;
     border-right: 1px solid #e4e0d8;
   }
   .ms-right-col {
-    flex: 1;
-    min-width: 0;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background: #f4f5f2;
-    overflow: hidden;
+    flex: 1; min-width: 0; height: 100%;
+    display: flex; flex-direction: column;
+    background: #f4f5f2; overflow: hidden;
   }
   @media (max-width: 860px) {
     .ms-two-col { flex-direction: column; height: auto; }
@@ -118,20 +103,12 @@ const css = `
 
   /* Greeting */
   .ms-greeting { margin-bottom: 28px; }
-  .ms-greeting-line {
-    font-size: 13px;
-    color: #9a9387;
-    letter-spacing: 0.03em;
-    margin: 0 0 4px;
-  }
+  .ms-greeting-line { font-size: 13px; color: #9a9387; letter-spacing: 0.03em; margin: 0 0 4px; }
   .ms-greeting-title {
     font-family: 'Fraunces', serif;
-    font-size: 30px;
-    font-weight: 500;
-    color: #1c1c18;
-    letter-spacing: -0.3px;
-    margin: 0;
-    line-height: 1.25;
+    font-size: 30px; font-weight: 500;
+    color: #1c1c18; letter-spacing: -0.3px;
+    margin: 0; line-height: 1.25;
   }
   .ms-greeting-title em { font-style: normal; color: #b07d3a; }
 
@@ -143,22 +120,24 @@ const css = `
     overflow: hidden;
   }
 
-  /* Record zone */
-  .ms-record-zone {
-    padding: 28px 24px 22px;
-    border-bottom: 1px solid #e4e0d8;
-  }
-  .ms-mic-row {
+  /* ── Input row: mic (left) + textarea (right) ── */
+  .ms-input-row {
     display: flex;
-    align-items: center;
-    gap: 20px;
+    align-items: stretch;
   }
-  .ms-mic-col {
+
+  /* Mic section */
+  .ms-mic-section {
+    width: 116px;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
+    justify-content: center;
+    gap: 10px;
+    padding: 36px 16px;
+    background: #f7f6f3;
+    border-inline-end: 1px solid #e4e0d8;
   }
   .ms-mic-wrap {
     position: relative;
@@ -168,150 +147,83 @@ const css = `
   }
   .ms-mic-ring {
     position: absolute;
-    width: 72px; height: 72px;
-    border-radius: 50%;
-    background: rgba(176,125,58,0.25);
+    width: 100px; height: 100px;
+    border-radius: 22px;
+    background: rgba(176,125,58,0.18);
     animation: pulse-ring 1.6s ease-out infinite;
     pointer-events: none;
   }
   .ms-mic-btn {
-    width: 64px; height: 64px;
-    border-radius: 50%;
+    width: 82px; height: 82px;
+    border-radius: 18px;
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.15s, background 0.2s, opacity 0.15s;
+    transition: transform 0.15s, background 0.2s, box-shadow 0.2s;
     position: relative;
     z-index: 1;
     background: #1c1c18;
+    box-shadow: 0 3px 10px rgba(28,28,24,0.22);
   }
-  .ms-mic-btn:hover { opacity: 0.85; transform: scale(1.05); }
+  .ms-mic-btn:hover { transform: scale(1.04); box-shadow: 0 5px 16px rgba(28,28,24,0.28); }
   .ms-mic-btn svg {
-    width: 26px; height: 26px;
-    fill: none;
-    stroke: #fff;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    width: 30px; height: 30px;
+    fill: none; stroke: #fff;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   }
-  .ms-mic-btn.recording { background: #b07d3a; }
-  .ms-mic-btn.transcribing { background: #5a524a; cursor: not-allowed; }
-  .ms-mic-btn.transcribing:hover { transform: none; opacity: 1; }
+  .ms-mic-btn.recording {
+    background: #b07d3a;
+    box-shadow: 0 3px 14px rgba(176,125,58,0.40);
+  }
+  .ms-mic-btn.transcribing { background: #5a524a; cursor: not-allowed; box-shadow: none; }
+  .ms-mic-btn.transcribing:hover { transform: none; }
 
   .ms-mic-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: #9a9387;
-    letter-spacing: 0.01em;
+    font-size: 11px; font-weight: 700;
+    color: #9a9387; letter-spacing: 0.02em;
+    text-align: center; line-height: 1.3;
     white-space: nowrap;
   }
   .ms-mic-label.recording { color: #b07d3a; }
   .ms-rec-timer {
-    font-size: 12px;
-    color: #b07d3a;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-  }
-
-  /* Wave column */
-  .ms-wave-col {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-width: 0;
-  }
-  .ms-idle-hint {
-    font-size: 13px;
-    font-weight: 500;
-    color: #5a524a;
-  }
-  .ms-idle-sub {
-    font-size: 11.5px;
-    color: #b0a89e;
-    margin-top: 4px;
-    letter-spacing: 0.01em;
-  }
-  .ms-wave-wrap {
-    width: 100%;
-    height: 56px;
-    border-radius: 12px;
-    background: #fbfaf8;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: fadein 0.2s ease;
-  }
-  .ms-wave-canvas {
-    width: 100%;
-    height: 56px;
-    display: block;
-  }
-  .ms-wave-hint {
-    font-size: 11px;
-    color: #b0a89e;
-    margin-top: 6px;
-    letter-spacing: 0.01em;
+    font-size: 13px; color: #b07d3a;
+    font-weight: 700; letter-spacing: 0.08em;
   }
   .ms-transcribing-row {
-    display: flex;
-    align-items: center;
-    gap: 7px;
+    display: flex; align-items: center; gap: 5px;
     animation: fadein 0.2s ease;
   }
   .ms-ts-dot {
     width: 5px; height: 5px;
-    border-radius: 50%;
-    background: #b07d3a;
+    border-radius: 50%; background: #b07d3a;
   }
   .ms-ts-dot:nth-child(1) { animation: ts-bounce 0.9s 0.00s ease-in-out infinite; }
   .ms-ts-dot:nth-child(2) { animation: ts-bounce 0.9s 0.15s ease-in-out infinite; }
   .ms-ts-dot:nth-child(3) { animation: ts-bounce 0.9s 0.30s ease-in-out infinite; }
-  .ms-ts-label {
-    font-size: 12px;
-    color: #9a9387;
-  }
 
-  /* Divider */
-  .ms-divider-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 24px 0;
-  }
-  .ms-divider-line {
+  /* Textarea section */
+  .ms-textarea-section {
     flex: 1;
-    height: 1px;
-    background: #e4e0d8;
+    padding: 14px 16px;
+    display: flex;
   }
-  .ms-divider-text {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: #c4bdb4;
-  }
-
-  /* Notes textarea */
-  .ms-notes-zone { padding: 12px 24px 0; }
   textarea.ms-input {
     width: 100%;
-    min-height: 110px;
+    min-height: 108px;
+    height: 100%;
     padding: 12px 14px;
     border: 1px solid #e4e0d8;
     border-radius: 12px;
     background: #fbfaf8;
     font-family: 'Nunito', system-ui, sans-serif;
-    font-size: 13.5px;
-    font-weight: 400;
-    color: #1c1c18;
-    line-height: 1.7;
+    font-size: 13.5px; font-weight: 400;
+    color: #1c1c18; line-height: 1.7;
     resize: vertical;
     transition: border-color 0.15s, background 0.15s;
     outline: none;
+    flex: 1;
   }
   textarea.ms-input:focus { border-color: #b07d3a; background: #fff; }
   textarea.ms-input::placeholder { color: #c4bdb4; }
@@ -320,150 +232,91 @@ const css = `
   /* Panel footer */
   .ms-panel-foot {
     border-top: 1px solid #e4e0d8;
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 16px;
-  }
-  .ms-generate-btn {
-    font-family: 'Nunito', system-ui, sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    background: #1c1c18;
-    color: #fff;
-    border: none;
-    border-radius: 20px;
-    padding: 10px 22px;
-    cursor: pointer;
+    padding: 12px 16px;
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
+  }
+  .ms-generate-btn {
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+    background: #1c1c18; color: #fff;
+    border: none; border-radius: 20px;
+    padding: 10px 22px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
     transition: opacity 0.15s;
+    margin-inline-start: auto;
   }
   .ms-generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .ms-generate-btn:not(:disabled):hover { opacity: 0.82; }
 
   .ms-upload-label {
     font-family: 'Nunito', system-ui, sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    color: #5a524a;
-    background: none;
-    border: 1px solid #e4e0d8;
-    border-radius: 20px;
-    padding: 8px 14px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: border-color 0.15s, color 0.15s;
-    white-space: nowrap;
+    font-size: 12px; font-weight: 600; color: #5a524a;
+    background: none; border: 1px solid #e4e0d8;
+    border-radius: 20px; padding: 8px 14px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    transition: border-color 0.15s, color 0.15s; white-space: nowrap;
   }
   .ms-upload-label:hover { border-color: #b07d3a; color: #1c1c18; }
 
   select.ms-select {
     font-family: 'Nunito', system-ui, sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    color: #3a3530;
-    background: #fff;
-    border: 1px solid #e4e0d8;
-    border-radius: 20px;
-    padding: 8px 28px 8px 14px;
-    cursor: pointer;
-    appearance: none;
+    font-size: 13px; font-weight: 500; color: #3a3530;
+    background: #fff; border: 1px solid #e4e0d8;
+    border-radius: 20px; padding: 8px 28px 8px 14px;
+    cursor: pointer; appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%239a9387' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 11px center;
-    outline: none;
-    transition: border-color 0.15s;
+    outline: none; transition: border-color 0.15s;
   }
   select.ms-select:focus { border-color: #b07d3a; }
 
   /* File pill */
   .ms-file-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #fdf3e0;
-    border: 1px solid #e8d5a8;
-    border-radius: 20px;
-    padding: 4px 10px 4px 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #fdf3e0; border: 1px solid #e8d5a8;
+    border-radius: 20px; padding: 4px 10px 4px 12px;
   }
   .ms-file-pill-name {
-    font-size: 11px;
-    color: #8a6525;
-    font-weight: 600;
-    max-width: 160px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 11px; color: #8a6525; font-weight: 600;
+    max-width: 130px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
   }
   .ms-file-remove {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #b07d3a;
-    padding: 0;
-    line-height: 1;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    opacity: 0.7;
-    transition: opacity 0.15s;
+    background: none; border: none; cursor: pointer;
+    color: #b07d3a; padding: 0; line-height: 1;
+    font-size: 14px; display: flex; align-items: center;
+    opacity: 0.7; transition: opacity 0.15s;
   }
   .ms-file-remove:hover { opacity: 1; }
 
-  /* Template row */
-  .ms-template-row {
-    background: #fff;
-    border: 1px solid #e4e0d8;
-    border-radius: 20px;
-    padding: 12px 20px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex-wrap: wrap;
-    margin-top: 8px;
-  }
-  .ms-template-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #b0a89e;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .ms-template-upload {
+  /* Template button in footer */
+  .ms-tmpl-btn {
     font-family: 'Nunito', system-ui, sans-serif;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: #5a524a;
-    background: #fbfaf8;
-    border: 1px solid #e4e0d8;
-    border-radius: 20px;
-    padding: 6px 14px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: border-color 0.15s;
+    font-size: 13px; font-weight: 600; color: #5a524a;
+    background: none; border: 1px solid #e4e0d8;
+    border-radius: 20px; padding: 9px 16px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+    transition: border-color 0.15s, color 0.15s; white-space: nowrap;
   }
-  .ms-template-upload:hover { border-color: #b07d3a; }
-  .ms-template-divider { font-size: 11px; color: #c4bdb4; }
+  .ms-tmpl-btn:hover { border-color: #b07d3a; color: #1c1c18; }
+  .ms-tmpl-btn svg { width: 15px; height: 15px; flex-shrink: 0; color: #9a9387; }
+
+  .ms-tmpl-select-wrap {
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .ms-tmpl-select-wrap svg { width: 16px; height: 16px; color: #9a9387; flex-shrink: 0; }
+
   .ms-badge {
-    font-size: 11px;
-    color: #8a6525;
-    background: #fdf3e0;
-    border: 1px solid #e8d5a8;
-    border-radius: 20px;
-    padding: 3px 10px;
-    font-weight: 600;
+    font-size: 11px; color: #8a6525;
+    background: #fdf3e0; border: 1px solid #e8d5a8;
+    border-radius: 20px; padding: 3px 10px; font-weight: 600;
   }
 
-  /* View-report banner (shown when report is hidden) */
+  /* View-report banner */
   .ms-report-banner {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     background: #f0fdf4; border: 1px solid #bbf7d0;
@@ -471,7 +324,8 @@ const css = `
     margin-top: 8px; animation: fadein 0.2s ease;
   }
   .ms-report-banner-text {
-    font-size: 12.5px; font-weight: 600; color: #15803d; display: flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 600; color: #15803d;
+    display: flex; align-items: center; gap: 6px;
   }
   .ms-report-banner-btn {
     font-family: 'Nunito', sans-serif;
@@ -485,50 +339,33 @@ const css = `
 
   /* Generating status */
   .ms-gen-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: #9a9387;
-    font-style: italic;
-    margin: 8px 0 0;
-    animation: fadein 0.2s ease;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: #9a9387; font-style: italic;
+    margin: 8px 0 0; animation: fadein 0.2s ease;
   }
 
   /* Limit modal */
   .ms-limit-backdrop {
-    position: fixed;
-    inset: 0;
+    position: fixed; inset: 0;
     background: rgba(28,28,24,0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    padding: 24px;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 24px;
   }
   .ms-limit-modal {
-    background: #fff;
-    border: 1px solid #e4e0d8;
-    border-radius: 24px;
-    width: 100%;
-    max-width: 420px;
-    padding: 32px 28px 28px;
-    text-align: center;
+    background: #fff; border: 1px solid #e4e0d8;
+    border-radius: 24px; width: 100%; max-width: 420px;
+    padding: 32px 28px 28px; text-align: center;
   }
   .ms-limit-icon {
-    width: 48px; height: 48px;
-    background: #fdf3e0;
-    border: 1px solid #e8d5a8;
-    border-radius: 50%;
+    width: 48px; height: 48px; background: #fdf3e0;
+    border: 1px solid #e8d5a8; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 16px;
-    font-size: 22px;
+    margin: 0 auto 16px; font-size: 22px;
   }
   .ms-limit-title {
     font-family: 'Fraunces', serif;
     font-size: 22px; font-weight: 500;
-    color: #1c1c18; letter-spacing: -0.2px;
-    margin: 0 0 8px;
+    color: #1c1c18; letter-spacing: -0.2px; margin: 0 0 8px;
   }
   .ms-limit-title span { color: #b07d3a; }
   .ms-limit-msg { font-size: 13.5px; color: #9a9387; line-height: 1.65; margin: 0 0 24px; }
@@ -546,12 +383,10 @@ const css = `
     display: inline-flex; align-items: baseline; gap: 2px;
     background: #fdf3e0; border: 1px solid #e8d5a8;
     border-radius: 20px; padding: 3px 10px;
-    font-size: 12px; font-weight: 700; color: #8a6525;
-    margin-bottom: 20px;
+    font-size: 12px; font-weight: 700; color: #8a6525; margin-bottom: 20px;
   }
   .ms-limit-cta {
-    width: 100%;
-    font-family: 'Nunito', sans-serif;
+    width: 100%; font-family: 'Nunito', sans-serif;
     font-size: 14px; font-weight: 700; letter-spacing: 0.03em;
     background: #1c1c18; color: #fff;
     border: none; border-radius: 20px; padding: 12px 22px;
@@ -871,120 +706,137 @@ function UploadScreen() {
           {/* Main panel */}
           <div className="ms-panel">
 
-            {/* Record zone */}
-            <div className="ms-record-zone">
-              <div className="ms-mic-row">
+            {/* Input row: mic (left) + textarea (right) */}
+            <div className="ms-input-row">
 
-                {/* Mic button column */}
-                <div className="ms-mic-col">
-                  <div className="ms-mic-wrap">
-                    {recState === "recording" && <div className="ms-mic-ring" />}
-                    <button
-                      className={micBtnClass}
-                      onClick={handleMicClick}
-                      disabled={recState === "transcribing"}
-                      aria-label={recState === "recording" ? "Stop recording" : "Start recording"}
-                    >
-                      {recState === "transcribing" ? (
-                        <span className="ms-spinner" />
-                      ) : recState === "recording" ? (
-                        /* Stop square */
-                        <svg viewBox="0 0 24 24">
-                          <rect x="6" y="6" width="12" height="12" rx="2" fill="white" stroke="none" />
-                        </svg>
-                      ) : (
-                        /* Mic icon */
-                        <svg viewBox="0 0 24 24">
-                          <rect x="9" y="2" width="6" height="11" rx="3" />
-                          <path d="M5 10a7 7 0 0014 0" />
-                          <line x1="12" y1="19" x2="12" y2="22" />
-                          <line x1="9"  y1="22" x2="15" y2="22" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-
-                  <div className={micLabelClass}>
-                    {recState === "transcribing"
-                      ? t("upload.transcribing")
-                      : recState === "recording"
-                        ? t("upload.tapToStop")
-                        : textInput
-                          ? t("upload.reRecord")
-                          : t("upload.tapToRecord")}
-                  </div>
-
-                  {recState === "recording" && (
-                    <div className="ms-rec-timer">{formatTime(recElapsed)}</div>
-                  )}
+              {/* Mic section */}
+              <div className="ms-mic-section">
+                <div className="ms-mic-wrap">
+                  {recState === "recording" && <div className="ms-mic-ring" />}
+                  <button
+                    className={micBtnClass}
+                    onClick={handleMicClick}
+                    disabled={recState === "transcribing"}
+                    aria-label={recState === "recording" ? "Stop recording" : "Start recording"}
+                  >
+                    {recState === "transcribing" ? (
+                      <span className="ms-spinner" />
+                    ) : recState === "recording" ? (
+                      <svg viewBox="0 0 24 24">
+                        <rect x="6" y="6" width="12" height="12" rx="2" fill="white" stroke="none" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24">
+                        <rect x="9" y="2" width="6" height="11" rx="3" />
+                        <path d="M5 10a7 7 0 0014 0" />
+                        <line x1="12" y1="19" x2="12" y2="22" />
+                        <line x1="9"  y1="22" x2="15" y2="22" />
+                      </svg>
+                    )}
+                  </button>
                 </div>
 
-                {/* Wave / status column */}
-                <div className="ms-wave-col">
-                  {recState === "idle" && !textInput && (
-                    <>
-                      <div className="ms-idle-hint">{t("upload.recordMeeting")}</div>
-                      <div className="ms-idle-sub">{t("upload.speakTranscribe")}</div>
-                    </>
-                  )}
-
-                  {recState === "idle" && textInput && (
-                    <>
-                      <div className="ms-idle-hint" style={{ color: "#b07d3a" }}>{t("upload.transcriptReady")}</div>
-                      <div className="ms-idle-sub">{t("upload.reviewEdit")}</div>
-                    </>
-                  )}
-
-                  {recState === "recording" && (
-                    <>
-                      <WaveCanvas canvasRef={canvasRef} />
-                      <div className="ms-wave-hint">{t("upload.tapToStop")}</div>
-                    </>
-                  )}
-
-                  {recState === "transcribing" && (
-                    <>
-                      <WaveCanvas canvasRef={canvasRef} />
-                      <div className="ms-transcribing-row" style={{ marginTop: 8 }}>
-                        <span className="ms-ts-dot" />
-                        <span className="ms-ts-dot" />
-                        <span className="ms-ts-dot" />
-                        <span className="ms-ts-label">{t("upload.transcribingRecording")}</span>
-                      </div>
-                    </>
-                  )}
+                <div className={micLabelClass}>
+                  {recState === "transcribing"
+                    ? t("upload.transcribing")
+                    : recState === "recording"
+                      ? t("upload.tapToStop")
+                      : textInput
+                        ? t("upload.reRecord")
+                        : t("upload.tapToRecord")}
                 </div>
+
+                {recState === "recording" && (
+                  <div className="ms-rec-timer">{formatTime(recElapsed)}</div>
+                )}
+
+                {recState === "transcribing" && (
+                  <div className="ms-transcribing-row">
+                    <span className="ms-ts-dot" />
+                    <span className="ms-ts-dot" />
+                    <span className="ms-ts-dot" />
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Divider */}
-            <div className="ms-divider-row">
-              <div className="ms-divider-line" />
-              <div className="ms-divider-text">{t("upload.orWriteNotes")}</div>
-              <div className="ms-divider-line" />
-            </div>
+              {/* Textarea section */}
+              <div className="ms-textarea-section">
+                <textarea
+                  className={`ms-input${textInput ? " has-content" : ""}`}
+                  value={textInput}
+                  onChange={e => setTextInput(e.target.value)}
+                  placeholder={t("upload.textareaPlaceholder")}
+                />
+              </div>
 
-            {/* Notes textarea */}
-            <div className="ms-notes-zone">
-              <textarea
-                className={`ms-input${textInput ? " has-content" : ""}`}
-                value={textInput}
-                onChange={e => setTextInput(e.target.value)}
-                placeholder={t("upload.textareaPlaceholder")}
-              />
             </div>
 
             {/* Footer */}
             <div className="ms-panel-foot">
-              <button
-                className="ms-generate-btn"
-                onClick={processAudio}
-                disabled={loading || recState !== "idle"}
-              >
-                {t("upload.generateMahdar")}
-              </button>
 
-              {/* Upload audio (secondary) */}
+              {/* Template — hidden file input always present */}
+              <input
+                ref={templateFileRef}
+                type="file"
+                accept=".docx"
+                style={{ display: "none" }}
+                onChange={e => setTemplate(e.target.files[0])}
+              />
+
+              {template ? (
+                <span className="ms-file-pill">
+                  <span className="ms-file-pill-name">✓ {template.name}</span>
+                  <button
+                    className="ms-file-remove"
+                    onClick={() => { setTemplate(null); setSelectedTemplateUrl(null); }}
+                    title="Remove template"
+                  >✕</button>
+                </span>
+              ) : savedTemplates.length > 0 ? (
+                <div className="ms-tmpl-select-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="8" y1="13" x2="16" y2="13"/>
+                    <line x1="8" y1="17" x2="16" y2="17"/>
+                  </svg>
+                  <select
+                    className="ms-select"
+                    value={selectedTemplateUrl || ""}
+                    onChange={async e => {
+                      const url = e.target.value;
+                      setSelectedTemplateUrl(url);
+                      if (!url) { setTemplate(null); return; }
+                      const res  = await fetch(url);
+                      const blob = await res.blob();
+                      const name = url.split("/").pop()?.split("?")[0] || "template.docx";
+                      setTemplate(new File([blob], name, {
+                        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                      }));
+                    }}
+                  >
+                    <option value="">{t("upload.templateChooseSaved")}</option>
+                    {savedTemplates.map(tmpl => (
+                      <option key={tmpl.id} value={tmpl.download_url}>{tmpl.name}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <button
+                  className="ms-tmpl-btn"
+                  onClick={() => templateFileRef.current?.click()}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="8" y1="13" x2="16" y2="13"/>
+                    <line x1="8" y1="17" x2="16" y2="17"/>
+                  </svg>
+                  {t("upload.templateLabel")}
+                </button>
+              )}
+
+              {/* Upload audio */}
               <label className="ms-upload-label">
                 {audioFile && recState === "idle"
                   ? <span className="ms-file-pill">
@@ -1009,15 +861,25 @@ function UploadScreen() {
                 />
               </label>
 
+              {/* Output language */}
               <select
                 className="ms-select"
                 value={outputLanguage}
                 onChange={e => setOutputLanguage(e.target.value)}
-                style={{ marginLeft: "auto" }}
               >
                 <option value="english">{t("upload.english")}</option>
                 <option value="arabic">{t("upload.arabic")}</option>
               </select>
+
+              {/* Generate — pushed to end */}
+              <button
+                className="ms-generate-btn"
+                onClick={processAudio}
+                disabled={loading || recState !== "idle"}
+              >
+                {t("upload.generateMahdar")}
+              </button>
+
             </div>
           </div>
 
@@ -1043,59 +905,6 @@ function UploadScreen() {
               </button>
             </div>
           )}
-
-          {/* Template row */}
-          <div className="ms-template-row">
-            <span className="ms-template-label">{t("upload.templateLabel")}</span>
-            <input
-              ref={templateFileRef}
-              type="file"
-              accept=".docx"
-              style={{ display: "none" }}
-              onChange={e => setTemplate(e.target.files[0])}
-            />
-            <button
-              className="ms-template-upload"
-              onClick={() => templateFileRef.current?.click()}
-            >
-              {template
-                ? <span className="ms-badge">✓ {template.name}</span>
-                : t("upload.templateUploadDocx")}
-            </button>
-
-            {savedTemplates.length > 0 && (
-              <>
-                <span className="ms-template-divider">or</span>
-                <select
-                  className="ms-select"
-                  value={selectedTemplateUrl || ""}
-                  onChange={async e => {
-                    const url = e.target.value;
-                    setSelectedTemplateUrl(url);
-                    if (!url) { setTemplate(null); return; }
-                    const res  = await fetch(url);
-                    const blob = await res.blob();
-                    const name = url.split("/").pop()?.split("?")[0] || "template.docx";
-                    setTemplate(new File([blob], name, {
-                      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    }));
-                  }}
-                  style={{ flex: 1, minWidth: 0 }}
-                >
-                  <option value="">{t("upload.templateChooseSaved")}</option>
-                  {savedTemplates.map(tmpl => (
-                    <option key={tmpl.id} value={tmpl.download_url}>{tmpl.name}</option>
-                  ))}
-                </select>
-              </>
-            )}
-
-            {!template && savedTemplates.length === 0 && (
-              <span className="ms-template-divider" style={{ fontSize: "12px", color: "#c4bdb4" }}>
-                {t("upload.templateOptional")}
-              </span>
-            )}
-          </div>
 
           </div>{/* end left col */}
 
