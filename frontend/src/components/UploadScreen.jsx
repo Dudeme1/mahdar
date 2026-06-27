@@ -433,6 +433,7 @@ function UploadScreen() {
   const [outputLanguage, setOutputLanguage] = useState("english");
   const [limitReached, setLimitReached]     = useState(false);
   const [limitMessage, setLimitMessage]     = useState("");
+  const [templateTags, setTemplateTags]     = useState([]);
 
   const canvasRef        = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -788,7 +789,7 @@ function UploadScreen() {
                   <span className="ms-file-pill-name">✓ {template.name}</span>
                   <button
                     className="ms-file-remove"
-                    onClick={() => { setTemplate(null); setSelectedTemplateUrl(null); }}
+                    onClick={() => { setTemplate(null); setSelectedTemplateUrl(null); setTemplateTags([]); }}
                     title="Remove template"
                   >✕</button>
                 </span>
@@ -806,7 +807,10 @@ function UploadScreen() {
                     onChange={async e => {
                       const url = e.target.value;
                       setSelectedTemplateUrl(url);
-                      if (!url) { setTemplate(null); return; }
+                      if (!url) { setTemplate(null); setTemplateTags([]); return; }
+                      // Capture the tags from the selected template
+                      const selected = savedTemplates.find(t => t.download_url === url);
+                      setTemplateTags(selected?.tags || []);
                       const res  = await fetch(url);
                       const blob = await res.blob();
                       const name = url.split("/").pop()?.split("?")[0] || "template.docx";
@@ -926,6 +930,8 @@ function UploadScreen() {
                 hijri_next_meeting={mom.hijri_next_meeting}
                 template={template}
                 onHide={() => setReportVisible(false)}
+                mahdarId={mom.mahdar_id}
+                initialTags={templateTags.length > 0 ? templateTags : (mom.initial_tags || [])}
               />
             </div>
           )}

@@ -333,6 +333,34 @@ class UpdateAttendeeRequest(BaseModel):
 class TokenRequest(BaseModel):
     token: str
 
+class CreateTagRequest(BaseModel):
+    token: str
+    name: str
+
+class DeleteTagRequest(BaseModel):
+    token: str
+    tag_id: int
+
+class RenameTagRequest(BaseModel):
+    token: str
+    tag_id: int
+    name: str
+
+class UpdateMahdarTagsRequest(BaseModel):
+    token: str
+    mahdar_id: int
+    tag_ids: list
+
+class UpdateTemplateTagsRequest(BaseModel):
+    token: str
+    template_id: int
+    tag_ids: list
+
+class UpdateAttendeeTagsRequest(BaseModel):
+    token: str
+    attendee_id: int
+    tag_ids: list
+
 app = FastAPI()
 
 app.add_middleware(
@@ -494,13 +522,14 @@ async def generate(request: TranscriptRequest):
     }).eq("user_id", user_id).execute()
 
     # Save to supabase
-    supabase.table("mahdars").insert({
+    insert_result = supabase.table("mahdars").insert({
         "user_id": user_id,
         "title": mom_data.get("title", ""),
         "content": mom_data
     }).execute()
+    mahdar_id = insert_result.data[0]["id"] if insert_result.data else None
 
-    return mom_data
+    return {**mom_data, "mahdar_id": mahdar_id}
 
 @app.post("/preview-mahdar")
 async def preview_mahdar(
@@ -700,9 +729,19 @@ async def get_attendees(request: TokenRequest):
     user = supabase.auth.get_user(request.token)
     if not user:
         return {"error": "Not logged in!"}
-    
-    result = supabase.table("attendees").select("*").eq("user_id", user.user.id).execute()
-    return {"attendees": result.data} 
+
+    user_id = user.user.id
+    attendees_result = supabase.table("attendees").select("*").eq("user_id", user_id).execute()
+    tags_result = supabase.table("tags").select("*").eq("user_id", user_id).execute()
+    tags_map = {t["id"]: t for t in (tags_result.data or [])}
+
+    attendees = []
+    for a in (attendees_result.data or []):
+        tag_ids = a.get("tag_ids") or []
+        tags = [tags_map[tid] for tid in tag_ids if tid in tags_map]
+        attendees.append({**a, "tags": tags})
+
+    return {"attendees": attendees} 
 
 @app.post("/delete-attendee")
 async def delete_attendee(request: DeleteAttendeeRequest):
@@ -765,21 +804,25 @@ async def get_templates(request: TokenRequest):
     user = supabase.auth.get_user(request.token)
     if not user:
         return {"error": "Not logged in!"}
-    
+
     user_id = user.user.id
     result = supabase.table("templates").select("*").eq("user_id", user_id).execute()
-    
+    tags_result = supabase.table("tags").select("*").eq("user_id", user_id).execute()
+    tags_map = {t["id"]: t for t in (tags_result.data or [])}
+
     templates = []
     for t in result.data:
-        # Generate a fresh signed URL for each template (valid 1 hour)
         signed = supabase.storage.from_("templates").create_signed_url(
             t["file_path"], 3600
         )
+        tag_ids = t.get("tag_ids") or []
+        tags = [tags_map[tid] for tid in tag_ids if tid in tags_map]
         templates.append({
             **t,
-            "download_url": signed.get("signedURL") or signed.get("signed_url")
+            "download_url": signed.get("signedURL") or signed.get("signed_url"),
+            "tags": tags,
         })
-    
+
     return {"templates": templates}
 
 
@@ -996,9 +1039,19 @@ async def get_mahdars(request: TokenRequest):
     user = supabase.auth.get_user(request.token)
     if not user:
         return {"error": "Not logged in!"}
-    
-    result = supabase.table("mahdars").select("*").eq("user_id", user.user.id).order("created_at", desc=True).execute()
-    return {"mahdars": result.data}
+
+    user_id = user.user.id
+    mahdars_result = supabase.table("mahdars").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+    tags_result = supabase.table("tags").select("*").eq("user_id", user_id).execute()
+    tags_map = {t["id"]: t for t in (tags_result.data or [])}
+
+    mahdars = []
+    for m in (mahdars_result.data or []):
+        tag_ids = m.get("tag_ids") or []
+        tags = [tags_map[tid] for tid in tag_ids if tid in tags_map]
+        mahdars.append({**m, "tags": tags})
+
+    return {"mahdars": mahdars}
 
 class GetMahdarRequest(BaseModel):
     token: str
@@ -1009,9 +1062,22 @@ async def get_mahdar(request: GetMahdarRequest):
     user = supabase.auth.get_user(request.token)
     if not user:
         return {"error": "Not logged in!"}
-    
-    result = supabase.table("mahdars").select("*").eq("id", request.mahdar_id).eq("user_id", user.user.id).single().execute()
-    return {"mahdar": result.data}
+
+    user_id = user.user.id
+    result = supabase.table("mahdars").select("*").eq("id", request.mahdar_id).eq("user_id", user_id).single().execute()
+    mahdar = result.data
+    if not mahdar:
+        return {"mahdar": None}
+
+    tag_ids = mahdar.get("tag_ids") or []
+    if tag_ids:
+        tags_result = supabase.table("tags").select("*").eq("user_id", user_id).execute()
+        tags_map = {t["id"]: t for t in (tags_result.data or [])}
+        tags = [tags_map[tid] for tid in tag_ids if tid in tags_map]
+    else:
+        tags = []
+
+    return {"mahdar": {**mahdar, "tags": tags}}
 
 class SubscribeRequest(BaseModel):
     token: str
@@ -1219,3 +1285,81 @@ async def get_payment_history(request: TokenRequest):
     except Exception as e:
         print(f"Payment history error: {e}")
         return {"payments": [], "error": str(e)}
+
+
+# ── Tags ──────────────────────────────────────────────────────────────────────
+
+@app.post("/get-tags")
+async def get_tags(request: TokenRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    result = supabase.table("tags").select("*").eq("user_id", user.user.id).order("name").execute()
+    return {"tags": result.data}
+
+
+@app.post("/create-tag")
+async def create_tag(request: CreateTagRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    user_id = user.user.id
+    name = request.name.strip()
+    if not name:
+        return {"error": "Tag name cannot be empty"}
+
+    # Return existing tag if name already exists (case-insensitive check)
+    existing = supabase.table("tags").select("*").eq("user_id", user_id).ilike("name", name).execute()
+    if existing.data:
+        return {"tag": existing.data[0]}
+
+    result = supabase.table("tags").insert({"user_id": user_id, "name": name}).execute()
+    return {"tag": result.data[0] if result.data else None}
+
+
+@app.post("/rename-tag")
+async def rename_tag(request: RenameTagRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    name = request.name.strip()
+    if not name:
+        return {"error": "Tag name cannot be empty"}
+    supabase.table("tags").update({"name": name}).eq("id", request.tag_id).eq("user_id", user.user.id).execute()
+    return {"message": "Tag renamed"}
+
+
+@app.post("/delete-tag")
+async def delete_tag(request: DeleteTagRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    supabase.table("tags").delete().eq("id", request.tag_id).eq("user_id", user.user.id).execute()
+    return {"message": "Tag deleted"}
+
+
+@app.post("/update-mahdar-tags")
+async def update_mahdar_tags(request: UpdateMahdarTagsRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    supabase.table("mahdars").update({"tag_ids": request.tag_ids}).eq("id", request.mahdar_id).eq("user_id", user.user.id).execute()
+    return {"message": "Tags updated"}
+
+
+@app.post("/update-template-tags")
+async def update_template_tags(request: UpdateTemplateTagsRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    supabase.table("templates").update({"tag_ids": request.tag_ids}).eq("id", request.template_id).eq("user_id", user.user.id).execute()
+    return {"message": "Tags updated"}
+
+
+@app.post("/update-attendee-tags")
+async def update_attendee_tags(request: UpdateAttendeeTagsRequest):
+    user = supabase.auth.get_user(request.token)
+    if not user:
+        return {"error": "Not logged in!"}
+    supabase.table("attendees").update({"tag_ids": request.tag_ids}).eq("id", request.attendee_id).eq("user_id", user.user.id).execute()
+    return {"message": "Tags updated"}

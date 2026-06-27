@@ -197,6 +197,8 @@ function ViewMahdarScreen() {
             hijri_next_meeting={content.hijri_next_meeting}
             template={template}
             token={token}
+            mahdarId={mahdar.id}
+            initialTags={mahdar.tags || []}
           />
         </div>
       </div>

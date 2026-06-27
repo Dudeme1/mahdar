@@ -15,6 +15,7 @@ function MahdarsHistoryScreen() {
     const [sortDir, setSortDir] = useState("desc"); // newest first by default
     const [deletingId, setDeletingId] = useState(null);
     const [confirmId, setConfirmId] = useState(null);
+    const [activeTagIds, setActiveTagIds] = useState([]);
     const navigate = useNavigate();
 
     const API = import.meta.env.VITE_API_URL;
@@ -88,9 +89,23 @@ function MahdarsHistoryScreen() {
         }
     };
 
+    const allTags = useMemo(() => {
+        const map = new Map();
+        mahdars.forEach(m => (m.tags || []).forEach(tag => { if (!map.has(tag.id)) map.set(tag.id, tag); }));
+        return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+    }, [mahdars]);
+
+    const toggleTagFilter = (id) => {
+        setActiveTagIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
-        let rows = mahdars.filter((t) => (t.title || "").toLowerCase().includes(q));
+        let rows = mahdars.filter((m) => {
+            const titleMatch = (m.title || "").toLowerCase().includes(q);
+            const tagMatch = activeTagIds.length === 0 || activeTagIds.every(tid => (m.tags || []).some(t => t.id === tid));
+            return titleMatch && tagMatch;
+        });
         if (sortKey) {
             rows = [...rows].sort((a, b) => {
                 const va = sortKey === "title" ? (a.title || "") : (a.created_at || "");
@@ -99,7 +114,7 @@ function MahdarsHistoryScreen() {
             });
         }
         return rows;
-    }, [mahdars, search, sortKey, sortDir]);
+    }, [mahdars, search, sortKey, sortDir, activeTagIds]);
 
     const openRow = (id) => navigate(`/mahdar/${id}`);
 
@@ -136,6 +151,10 @@ function MahdarsHistoryScreen() {
                 .mh-search::placeholder { color:#c8c6cc; }
                 @keyframes mh-shimmer { 0% { opacity: 0.45; } 50% { opacity: 1; } 100% { opacity: 0.45; } }
                 .mh-skeleton { height:14px; border-radius:6px; background:#eeedf0; animation: mh-shimmer 1.2s ease-in-out infinite; }
+                .mh-tag-stamp { display:inline-flex; align-items:center; padding:3px 8px; border-radius:4px; border:1.5px dashed rgba(160,120,48,0.55); background:rgba(195,152,83,0.05); color:#8a6525; font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; font-family:'DM Sans',system-ui,sans-serif; }
+                .mh-tag-filter { display:inline-flex; align-items:center; padding:4px 10px; border-radius:5px; border:1.5px dashed rgba(160,120,48,0.45); background:transparent; color:#a07830; font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; font-family:'DM Sans',system-ui,sans-serif; cursor:pointer; transition:background 0.12s, border-color 0.12s; }
+                .mh-tag-filter:hover { background:rgba(195,152,83,0.07); border-color:rgba(160,120,48,0.7); }
+                .mh-tag-filter.active { background:rgba(195,152,83,0.12); border-color:rgba(160,120,48,0.8); border-style:solid; color:#7a5c1e; }
             `}</style>
 
             {/* Header */}
@@ -154,6 +173,28 @@ function MahdarsHistoryScreen() {
                     <button onClick={fetchMahdars} style={{ fontSize: "12px", fontWeight: 600, color: "#9c4338", background: "transparent", border: "1px solid #e3b8b3", borderRadius: "7px", padding: "4px 12px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                         {t("common.retry")}
                     </button>
+                </div>
+            )}
+
+            {/* Tag filter bar */}
+            {allTags.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", marginBottom: "10px" }}>
+                    <span style={{ fontSize: "9px", fontWeight: "700", letterSpacing: "0.1em", textTransform: "uppercase", color: "#c4bfca", whiteSpace: "nowrap" }}>{t("history.filterByTag")}</span>
+                    {allTags.map(tag => (
+                        <button
+                            key={tag.id}
+                            className={`mh-tag-filter${activeTagIds.includes(tag.id) ? " active" : ""}`}
+                            onClick={() => toggleTagFilter(tag.id)}
+                        >
+                            {tag.name}
+                            {activeTagIds.includes(tag.id) && <span style={{ marginLeft: "5px", opacity: 0.6 }}>×</span>}
+                        </button>
+                    ))}
+                    {activeTagIds.length > 0 && (
+                        <button onClick={() => setActiveTagIds([])} style={{ fontSize: "11px", color: "#b0adb5", background: "none", border: "none", cursor: "pointer", padding: "0 4px", fontFamily: "inherit" }}>
+                            {t("history.clearFilter")}
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -240,9 +281,18 @@ function MahdarsHistoryScreen() {
                                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
                                                 </svg>
                                             </div>
-                                            <span dir="auto" style={{ fontWeight: "600", color: "#1a2e22", fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                                {mahdar.title || "Untitled"}
-                                            </span>
+                                            <div style={{ minWidth: 0 }}>
+                                                <div dir="auto" style={{ fontWeight: "600", color: "#1a2e22", fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                    {mahdar.title || "Untitled"}
+                                                </div>
+                                                {(mahdar.tags || []).length > 0 && (
+                                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "5px" }}>
+                                                        {mahdar.tags.map(tag => (
+                                                            <span key={tag.id} className="mh-tag-stamp">{tag.name}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                     <td style={{ ...tdStyle, fontSize: "12px", color: "#b0adb5", fontFamily: "ui-monospace, Consolas, monospace" }}>

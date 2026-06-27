@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import supabase from "../supabase";
 import { useLanguage } from "../i18n/LanguageContext";
 import MahdarLoader from "./MahdarLoader";
+import TagPicker from "./TagPicker";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const SIMPLE_VARS = [
@@ -743,7 +744,19 @@ function TemplatesScreen({ user }) {
                               <div style={{ width:"28px",height:"28px",borderRadius:"6px",background:"#f0f7f2",border:"1px solid #d0e8d8",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
                                 <svg width="13" height="15" viewBox="0 0 13 15" fill="none"><rect x="1" y="1" width="11" height="13" rx="2" stroke="#5a8a6a" strokeWidth="1.5"/><line x1="3.5" y1="5" x2="9.5" y2="5" stroke="#5a8a6a" strokeWidth="1.2"/><line x1="3.5" y1="8" x2="9.5" y2="8" stroke="#5a8a6a" strokeWidth="1.2"/><line x1="3.5" y1="11" x2="7" y2="11" stroke="#5a8a6a" strokeWidth="1.2"/></svg>
                               </div>
-                              <span style={{ fontWeight:"600",color:"#1a2e22",fontSize:"13px",fontFamily:"DM Sans,sans-serif" }}>{tmpl.name}</span>
+                              <div>
+                                <span style={{ fontWeight:"600",color:"#1a2e22",fontSize:"13px",fontFamily:"DM Sans,sans-serif" }}>{tmpl.name}</span>
+                                <TagPicker
+                                  token={token}
+                                  initialTags={tmpl.tags || []}
+                                  onUpdate={async (tagIds) => {
+                                    await fetch(`${API}/update-template-tags`, {
+                                      method: "POST", headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ token, template_id: tmpl.id, tag_ids: tagIds }),
+                                    });
+                                  }}
+                                />
+                              </div>
                             </div>
                           </td>
                           <td style={{ padding:"13px 18px",borderBottom:"1px solid #f0eff2",verticalAlign:"middle",fontSize:"12px",color:"#b0adb5",fontFamily:"ui-monospace,Consolas,monospace",whiteSpace:"nowrap" }}>{fmt(tmpl.created_at)}</td>

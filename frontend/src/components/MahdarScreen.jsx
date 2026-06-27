@@ -2,6 +2,70 @@ import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../i18n/LanguageContext";
 import MahdarLoader from "./MahdarLoader";
 
+const tagCss = `
+  .tag-section {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 7px;
+    padding: 12px 20px 0;
+  }
+  .tag-section-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #c4bfca;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    white-space: nowrap; margin-right: 2px;
+  }
+  .tag-stamp {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 9px; border-radius: 5px;
+    border: 1.5px dashed rgba(160,120,48,0.65);
+    background: rgba(195,152,83,0.06);
+    color: #8a6525; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.11em; text-transform: uppercase;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    transition: border-color 0.13s, background 0.13s;
+  }
+  .tag-stamp-remove {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 13px; height: 13px; border-radius: 3px;
+    border: none; background: transparent; cursor: pointer;
+    color: rgba(138,101,37,0.55); padding: 0; line-height: 1;
+    font-size: 12px; font-weight: 700;
+    transition: color 0.12s, background 0.12s;
+  }
+  .tag-stamp-remove:hover { color: #c0564a; background: rgba(192,86,74,0.08); }
+
+  .tag-combobox-wrap { position: relative; }
+  .tag-combobox-input {
+    height: 28px; padding: 0 10px; border-radius: 6px;
+    border: 1px dashed rgba(160,120,48,0.4);
+    background: transparent; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.05em; color: #a07830;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    outline: none; width: 110px; transition: border-color 0.15s, width 0.2s;
+    cursor: text;
+  }
+  .tag-combobox-input:focus { border-color: rgba(160,120,48,0.7); width: 150px; }
+  .tag-combobox-input::placeholder { color: rgba(160,120,48,0.5); font-weight: 600; letter-spacing: 0.05em; }
+  .tag-dropdown {
+    position: absolute; top: calc(100% + 5px); left: 0; z-index: 50;
+    background: #fff; border: 1px solid #e8e7ea; border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(26,46,34,0.1);
+    min-width: 180px; max-height: 220px; overflow-y: auto;
+    padding: 4px;
+  }
+  .tag-dropdown-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 7px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.07em;
+    text-transform: uppercase; color: #1a2e22;
+    cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif;
+    transition: background 0.1s;
+  }
+  .tag-dropdown-item:hover { background: #f4f3f6; }
+  .tag-dropdown-item.create { color: #a07830; }
+  .tag-dropdown-item.create:hover { background: rgba(195,152,83,0.08); }
+  .tag-dropdown-empty { padding: 10px 12px; font-size: 12px; color: #b0adb5; font-family: 'DM Sans', system-ui, sans-serif; }
+`;
+
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
 
@@ -211,6 +275,117 @@ const fieldLabel = {
   fontFamily: "'DM Sans', system-ui, sans-serif",
 };
 
+// ─── TagSelector ─────────────────────────────────────────────────────────────
+function TagSelector({ token, mahdarId, initialTags = [], API }) {
+  const { t } = useLanguage();
+  const [allTags, setAllTags]           = useState([]);
+  const [selectedTags, setSelectedTags] = useState(initialTags);
+  const [inputVal, setInputVal]         = useState("");
+  const [open, setOpen]                 = useState(false);
+  const inputRef                        = useRef(null);
+  const wrapRef                         = useRef(null);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API}/get-tags`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    }).then(r => r.json()).then(d => setAllTags(d.tags || []));
+  }, [token]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const saveTags = async (tags) => {
+    if (!mahdarId) return;
+    await fetch(`${API}/update-mahdar-tags`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, mahdar_id: mahdarId, tag_ids: tags.map(t => t.id) }),
+    });
+  };
+
+  const addTag = async (tag) => {
+    if (selectedTags.find(s => s.id === tag.id)) return;
+    const next = [...selectedTags, tag];
+    setSelectedTags(next);
+    setInputVal("");
+    setOpen(false);
+    await saveTags(next);
+  };
+
+  const createAndAdd = async () => {
+    const name = inputVal.trim();
+    if (!name) return;
+    const res = await fetch(`${API}/create-tag`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, name }),
+    });
+    const data = await res.json();
+    if (data.tag) {
+      setAllTags(prev => prev.find(t => t.id === data.tag.id) ? prev : [...prev, data.tag].sort((a, b) => a.name.localeCompare(b.name)));
+      await addTag(data.tag);
+    }
+  };
+
+  const removeTag = async (id) => {
+    const next = selectedTags.filter(t => t.id !== id);
+    setSelectedTags(next);
+    await saveTags(next);
+  };
+
+  const filtered = allTags.filter(t =>
+    !selectedTags.find(s => s.id === t.id) &&
+    t.name.toLowerCase().includes(inputVal.toLowerCase())
+  );
+  const showCreate = inputVal.trim() && !allTags.find(t => t.name.toLowerCase() === inputVal.trim().toLowerCase());
+
+  return (
+    <div className="tag-section">
+      <span className="tag-section-label">{t("tags.sectionLabel")}</span>
+
+      {selectedTags.map(tag => (
+        <span key={tag.id} className="tag-stamp">
+          {tag.name}
+          <button className="tag-stamp-remove" onClick={() => removeTag(tag.id)} title="Remove tag">×</button>
+        </span>
+      ))}
+
+      <div className="tag-combobox-wrap" ref={wrapRef}>
+        <input
+          ref={inputRef}
+          className="tag-combobox-input"
+          placeholder={t("tags.addPlaceholder")}
+          value={inputVal}
+          onChange={e => { setInputVal(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={e => {
+            if (e.key === "Enter") { e.preventDefault(); if (showCreate) createAndAdd(); else if (filtered[0]) addTag(filtered[0]); }
+            if (e.key === "Escape") { setOpen(false); setInputVal(""); }
+          }}
+        />
+        {open && (filtered.length > 0 || showCreate) && (
+          <div className="tag-dropdown">
+            {filtered.map(tag => (
+              <div key={tag.id} className="tag-dropdown-item" onMouseDown={() => addTag(tag)}>
+                {tag.name}
+              </div>
+            ))}
+            {showCreate && (
+              <div className="tag-dropdown-item create" onMouseDown={createAndAdd}>
+                + {t("tags.createOption")} "{inputVal.trim()}"
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 function CopyButton({ value }) {
   const { t } = useLanguage();
@@ -356,6 +531,7 @@ function MahdarScreen({
   token, date, hijri_date, title, purpose, location,
   attendees, discussion, decisions, action_items,
   next_meeting, hijri_next_meeting, template, onHide,
+  mahdarId, initialTags,
 }) {
   const { t } = useLanguage();
   const [edit_date,               setDate]               = useState(date);
@@ -505,7 +681,7 @@ function MahdarScreen({
 
   return (
     <>
-      <style>{css}</style>
+      <style>{tagCss}{css}</style>
       <div className="mah-root" style={{ display:"flex",flexDirection:"column",height:"100%" }}>
 
         {/* ── Sticky header ── */}
@@ -539,6 +715,9 @@ function MahdarScreen({
             </button>
           </div>
         </div>
+
+        {/* ── Tags ── */}
+        <TagSelector token={token} mahdarId={mahdarId} initialTags={initialTags || []} API={API} />
 
         {/* ── Scrollable body ── */}
         <div style={{ flex:1,overflowY:"auto",padding:"16px 20px 40px" }}>

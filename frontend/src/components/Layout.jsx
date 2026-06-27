@@ -316,11 +316,21 @@ function makeCSS(isRTL) {
   `;
 }
 
+function TagIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+      <line x1="7" y1="7" x2="7.01" y2="7" />
+    </svg>
+  );
+}
+
 const NAV_ITEMS = [
   { key: "newMahdar", icon: "/newmahdar_icon.png",    path: "/dashboard" },
   { key: "attendees", icon: "/attendees_icon.png",    path: "/attendees" },
   { key: "templates", icon: "/templates_icon.png",    path: "/templates" },
   { key: "history",   icon: "/history_icon.png",      path: "/history"   },
+  { key: "tags",      icon: null, SvgIcon: TagIcon,   path: "/tags"      },
 ];
 
 const ACCOUNT_ITEMS = [
@@ -413,18 +423,16 @@ function Layout({ children, user }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
             {!collapsed && <div className="lay-section-label">{t("layout.menu")}</div>}
 
-            {NAV_ITEMS.map(({ key, icon, path }) => (
+            {NAV_ITEMS.map(({ key, icon, SvgIcon, path }) => (
               <div key={path} className="lay-nav-wrap">
                 <button
                   className={`lay-nav-btn${location.pathname === path ? " active" : ""}${collapsed ? " collapsed" : ""}`}
                   onClick={() => handleNav(path)}
                 >
-                  <img
-                    src={icon}
-                    alt=""
-                    className="lay-nav-icon"
-                    style={{ width: "18px", height: "18px", objectFit: "contain", flexShrink: 0, opacity: 0.75 }}
-                  />
+                  {SvgIcon
+                    ? <span className="lay-nav-icon" style={{ width: "18px", height: "18px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><SvgIcon size={17} /></span>
+                    : <img src={icon} alt="" className="lay-nav-icon" style={{ width: "18px", height: "18px", objectFit: "contain", flexShrink: 0, opacity: 0.75 }} />
+                  }
                   {!collapsed && <span className="lay-nav-label">{t(`layout.nav.${key}`)}</span>}
                 </button>
                 <div className="lay-tooltip">{t(`layout.nav.${key}`)}</div>

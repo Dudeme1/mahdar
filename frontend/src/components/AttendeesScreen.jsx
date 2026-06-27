@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import supabase from "../supabase";
 import { useLanguage } from "../i18n/LanguageContext";
 import MahdarLoader from "./MahdarLoader";
+import TagPicker from "./TagPicker";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
@@ -459,7 +460,19 @@ function AttendeesScreen() {
                         ) : (
                           /* ── View mode ── */
                           <>
-                            <td style={{ ...td, fontWeight: "600", color: "#1a2e22" }}>{a.name}</td>
+                            <td style={{ ...td, fontWeight: "600", color: "#1a2e22" }}>
+                              {a.name}
+                              <TagPicker
+                                token={token}
+                                initialTags={a.tags || []}
+                                onUpdate={async (tagIds) => {
+                                  await fetch(`${API}/update-attendee-tags`, {
+                                    method: "POST", headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ token, attendee_id: a.id, tag_ids: tagIds }),
+                                  });
+                                }}
+                              />
+                            </td>
                             <td style={td}>{a.email || <Dash />}</td>
                             <td style={td}>{a.role || <Dash />}</td>
                             <td style={td}>
